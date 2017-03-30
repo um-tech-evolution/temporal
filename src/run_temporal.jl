@@ -16,7 +16,7 @@ function print_temporal_result( tr::temporal_result_type )
   println("burn_in: ", tr.burn_in)
   println("uniform_start: ", tr.uniform_start)
   println("horiz_select: ", tr.horiz_select)
-  println("normal_stddev: ", tr.normal_stddev)
+  println("mutation_stddev: ", tr.mutation_stddev)
   println("ideal_init: ", tr.ideal_init)
   println("move_range: ", tr.move_range)
   println("move_time_interval: ", tr.move_time_interval)
@@ -37,7 +37,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     #"# num_emmigrants=$(tr.ne)",
     "# ngens=$(tr.ngens)",
     "# burn_in=$(tr.burn_in)",
-    "# normal_stddev=$(tr.normal_stddev)",
+    #"# mutation_stddev=$(tr.mutation_stddev)",
     "# opt_loss_cutoff=$(tr.opt_loss_cutoff)"
   ]
   write(stream,join(param_strings,"\n"),"\n")
@@ -45,6 +45,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "num_subpops",
     "subpop_size",
     "num_emigrants",
+    "mutation stddev",
     "num_attributes",
     "move_range",
     "move_time_interval",
@@ -61,6 +62,7 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
           tr.num_subpops,
           Int(floor(tr.N/tr.num_subpops)),
           tr.ne,
+          tr.mutation_stddev,
           tr.num_attributes,
           tr.move_range,
           tr.move_time_interval,

@@ -4,24 +4,24 @@ export temporal_result, run_evolve, evolve, horiz_transfer_circular!, mutate_met
 #include("propsel.jl")
 #include("fitness.jl") 
 
-function temporal_result( N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, normal_stddev::Float64, num_emmigrants::Int64,
+function temporal_result( N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutation_stddev::Float64, num_emmigrants::Int64,
     move_range::Float64, move_time_interval::Int64, opt_loss_cutoff::Float64, horiz_select::Bool=false, uniform_start::Bool=true )
   burn_in = 1.0
   ideal_init = 0.5
-  return temporal_result_type( N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, normal_stddev,
+  return temporal_result_type( N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, mutation_stddev,
       ideal_init, move_range, move_time_interval, opt_loss_cutoff, 0.0, 0.0, 0.0, 0.0 )
 end
 
-function run_evolve(  N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, normal_stddev::Float64, num_emmigrants::Int64,
+function run_evolve(  N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutation_stddev::Float64, num_emmigrants::Int64,
       move_range::Float64, move_time_interval::Int64, opt_loss_cutoff::Float64, horiz_select::Bool=false, uniform_start::Bool=true )
-  tr = temporal_result( N, num_attributes, num_subpops, ngens, normal_stddev, num_emmigrants, move_range, move_time_interval, opt_loss_cutoff, 
+  tr = temporal_result( N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, opt_loss_cutoff, 
       horiz_select, uniform_start )
   evolve( tr )
 end
 
 
 function evolve( tr::temporal_result_type )
-  println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne)
+  println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev)
   int_burn_in = Int(round(tr.burn_in*tr.N)) + 10
   id = [0]
   mmeans = zeros(tr.num_subpops)
@@ -62,7 +62,7 @@ function evolve( tr::temporal_result_type )
       #println("  count below cutoff: ",count_below_cutoff,"   cumm_count_below_cutoff: ",cumm_count_below_cutoff)
       move_optima( ideal, tr.move_range )
     end
-    mutate_meta_pop!( meta_pop, vt, ideal, id, tr.normal_stddev )  # will also re-evaluate fitness
+    mutate_meta_pop!( meta_pop, vt, ideal, id, tr.mutation_stddev )  # will also re-evaluate fitness
     for  j = 1:tr.num_subpops
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )
     end
@@ -77,21 +77,21 @@ function evolve( tr::temporal_result_type )
       (mmeans, vvars) = means( meta_pop, vt )
       cumm_means += mmeans
       cumm_vars += vvars
-      print("g: ",g,"  mmeans: ",mmeans)
+      #print("g: ",g,"  mmeans: ",mmeans)
       #print("   fstdev: ",sqrt(vvars))
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
       #println("   astdev: ",sqrt(att_vars))
       count_below_cutoff = count_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
       cumm_count_below_cutoff += count_below_cutoff
-      println("  count below cutoff: ",count_below_cutoff,"   cumm_count_below_cutoff: ",cumm_count_below_cutoff)
+      #println("  count below cutoff: ",count_below_cutoff,"   cumm_count_below_cutoff: ",cumm_count_below_cutoff)
     end
   end
   tr.mean_fraction_subpops_below_cutoff = cumm_count_below_cutoff/tr.num_subpops/tr.ngens
   tr.fitness_mean = mean(cumm_means/tr.ngens)
   #println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
   #println("cumm_count_below_cutoff: ",cumm_count_below_cutoff)
-  println("cumm_count_below_cutoff/num_subpops: ",cumm_count_below_cutoff/tr.num_subpops)
+  #println("cumm_count_below_cutoff/num_subpops: ",cumm_count_below_cutoff/tr.num_subpops)
   tr.fitness_variance = mean(cumm_vars/tr.ngens)
   tr.attribute_variance = mean(cumm_attr_vars/tr.ngens)
   return tr
@@ -154,7 +154,7 @@ function horiz_transfer_circular!(  meta_pop::PopList, tr::temporal_result_type,
   meta_pop
 end
 
-function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, normal_stddev::Float64 )
+function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, mutation_stddev::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   #println("num_subpops: ",num_subpops,"  subpop_size: ",subpop_size)
@@ -166,7 +166,7 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
       #println("B j: ",j,"  i: ",i," meta_pop[j][i]: ",meta_pop[j][i],"  v_lists[j][i]: ",v_lists[j][i])
       meta_pop[j][i] = id[1]
       id[1] += 1
-      vt[meta_pop[j][i]] = mutate_variant( v_lists[j][i], normal_stddev )
+      vt[meta_pop[j][i]] = mutate_variant( v_lists[j][i], mutation_stddev )
       vt[meta_pop[j][i]].fitness = fitness( vt[meta_pop[j][i]].attributes, ideal )
       #println("A j: ",j,"  i: ",i," meta_pop[j][i]: ",meta_pop[j][i],"  vt[meta_pop[j][i]]: ",vt[meta_pop[j][i]])
     end
@@ -174,17 +174,17 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
 end
 
 
-function mutate_variant( v::variant_type, normal_stddev::Float64 )
+function mutate_variant( v::variant_type, mutation_stddev::Float64 )
   new_v = deepcopy(v)
-  new_v.attributes = mutate_attributes( new_v.attributes, normal_stddev )
+  new_v.attributes = mutate_attributes( new_v.attributes, mutation_stddev )
   new_v
 end
 
-function mutate_attributes( attributes::Vector{Float64}, normal_stddev::Float64 )
-  #println("mutate attributes  normal_stddev: ",normal_stddev)
+function mutate_attributes( attributes::Vector{Float64}, mutation_stddev::Float64 )
+  #println("mutate attributes  mutation_stddev: ",mutation_stddev)
   for i = 1:length(attributes)
     #println("B attributes[",i,"]: ",attributes[i])
-    attributes[i] += +normal_stddev*randn()
+    attributes[i] += +mutation_stddev*randn()
     while attributes[i] < 0
         attributes[i] += 1.0
         #println("wrapped up: ",attributes[i])
@@ -254,7 +254,7 @@ function count_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::
 end
 
 
-#run_evolve(N,num_attributes,num_subpops, ngens,normal_stddev,num_emmigrants,move_range,move_time_interval,opt_loss_cutoff,uniform_start)
+#run_evolve(N,num_attributes,num_subpops, ngens,mutation_stddev,num_emmigrants,move_range,move_time_interval,opt_loss_cutoff,uniform_start)
 function init()
   #include("types.jl")
   include("propsel.jl")
@@ -264,7 +264,7 @@ function init()
   global num_attributes = 4
   global ngens = 200
   global num_emmigrants = 2
-  global normal_stddev = 0.04
+  global mutation_stddev = 0.04
   global move_range = 0.1
   global move_time_interval = 5
   global opt_loss_cutoff = 0.2
