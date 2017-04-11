@@ -1,5 +1,6 @@
-export variant_type, fitness_location_type
+export variant_type, fitness_location_type, Population, PopList
 using Distributions
+using StatsBase
 typealias Population Array{Int64,1}
 typealias PopList Array{Population,1}
 
@@ -15,6 +16,7 @@ type fitness_location_type
 end
 
 type temporal_result_type
+  num_trials::Int64   # number of repeated runs with the same parameter values
   N::Int64   # meta-population size
   num_subpops::Int64   # number of subpopulations
   ne::Int64  # number of emmigrants in horizontal transfer
@@ -28,6 +30,9 @@ type temporal_result_type
   move_range::Float64     # on optima change, a uniform random number in the interval [-move_range,move_range] is added to each ideal
   move_time_interval::Int64  # The optima are moved every move_time_interval generations
   opt_loss_cutoff::Float64   # The fitness at which a population is considered to have lost the optimum
+  min_fit::Float64      # Lower bound on fitness
+  linear_fitness::Bool      # if true, fitness is 0.5 - Euclidean distance
+  topology::String      # Neighborhood topology for horizontal_transfer_by_fitness: must be "circular", "ring", "vonneumann", "moore", or "random"
   mean_fraction_subpops_below_cutoff::Float64  # mean of time to optimum loss
   fitness_mean::Float64
   fitness_variance::Float64
