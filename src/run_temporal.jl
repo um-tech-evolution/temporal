@@ -38,7 +38,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "# N=$(tr.N)",
     "# num_subpops_list=$(num_subpops_list)",
     #"# num_attributes=$(tr.num_attributes)",
-    "# horiz_select=$(tr.horiz_select)",
+    #"# horiz_select=$(tr.horiz_select)",
     #"# num_emmigrants=$(tr.ne)",
     "# ngens=$(tr.ngens)",
     "# burn_in=$(tr.burn_in)",
