@@ -25,5 +25,6 @@ const horiz_select_list=[true]
 const uniform_start=true
 const min_fit = 0.35
 const linear_fitness=true
-const topology = "moore"
+#const topology = "moore"
+const topology_list = ["ring","moore"]
 const burn_in= 0.0    # generations of burn_in as a multiple of N

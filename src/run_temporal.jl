@@ -25,7 +25,8 @@ function print_temporal_result( tr::temporal_result_type )
   println("linear_fitness: ",tr.linear_fitness)
   println("topology: ",tr.topology)
   println("min_fit: ",tr.min_fit)
-  println("mean_fraction_subpops_below_cutoff: ", tr.mean_fraction_subpops_below_cutoff)
+  println("mean_fraction_max_subpops_below_cutoff: ", tr.mean_max_subpops_below_cutoff)
+  println("mean_fraction_avg_subpops_below_cutoff: ", tr.mean_avg_subpops_below_cutoff)
   println("fitness_mean: ", tr.fitness_mean)
   println("fitness_variance: ", tr.fitness_variance)
   println("attiribute_variance: ", tr.attribute_variance)
@@ -47,7 +48,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "# uniform_start=$(tr.uniform_start)",
     "# min_fit=$(tr.min_fit)",
     "# linear_fitness=$(tr.linear_fitness)",
-    "# topology=$(tr.topology)"
+    #"# topology=$(tr.topology)"
   ]
   write(stream,join(param_strings,"\n"),"\n")
   heads = [
@@ -59,10 +60,12 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "move_range",
     "move_time_interval",
     "horiz_select",
+    "topology",
     "mean_fitness",
     "stddev_fitness",
     "stddev_attributes",
-    "fract_below_cutoff"
+    "max_fract_below_cutoff",
+    "avg_fract_below_cutoff"
   ]
   write(stream,join(heads,","),"\n")
 end
@@ -77,10 +80,12 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
           tr.move_range,
           tr.move_time_interval,
           tr.horiz_select,
+          tr.topology,
           tr.fitness_mean,
           sqrt(tr.fitness_variance),
           sqrt(tr.attribute_variance),
-          tr.mean_fraction_subpops_below_cutoff
+          tr.mean_max_subpops_below_cutoff,
+          tr.mean_avg_subpops_below_cutoff,
   ]
   write(stream,join(line,","),"\n")
 end

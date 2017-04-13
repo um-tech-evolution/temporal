@@ -9,7 +9,7 @@ function temporal_result( num_trials::Int64, N::Int64, num_attributes::Int64, nu
     uniform_start::Bool=false, linear_fitness::Bool=false, burn_in::Float64=1.0 )
   ideal_init = 0.5
   return temporal_result_type( num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, mutation_stddev,
-      ideal_init, move_range, move_time_interval, opt_loss_cutoff, min_fit, linear_fitness, topology, 0.0, 0.0, 0.0, 0.0 )
+      ideal_init, move_range, move_time_interval, opt_loss_cutoff, min_fit, linear_fitness, topology, 0.0, 0.0, 0.0, 0.0, 0.0 )
 end
 
 @doc """ function repeat_evolve( )
@@ -24,18 +24,21 @@ function repeat_evolve( tr::temporal_result_type )
   sum_mean = 0.0
   sum_vars = 0.0
   sum_attr_vars = 0.0
-  sum_count_below_cutoff = 0
+  sum_max_count_below_cutoff = 0
+  sum_avg_count_below_cutoff = 0
 
   for t = 1:tr.num_trials
     tr = evolve( tr ) 
     Base.push!( tr_list, deepcopy(tr) )
-    sum_count_below_cutoff += tr.mean_fraction_subpops_below_cutoff
+    sum_max_count_below_cutoff += tr.mean_max_subpops_below_cutoff
+    sum_avg_count_below_cutoff += tr.mean_avg_subpops_below_cutoff
     #println("t: ",t," tr.fitness_variance: ",tr.fitness_variance)
     sum_mean += tr.fitness_mean
     sum_vars += tr.fitness_variance
     sum_attr_vars += tr.attribute_variance
   end
-  tr.mean_fraction_subpops_below_cutoff = sum_count_below_cutoff/tr.num_trials
+  tr.mean_max_subpops_below_cutoff = sum_max_count_below_cutoff/tr.num_trials
+  tr.mean_avg_subpops_below_cutoff = sum_avg_count_below_cutoff/tr.num_trials
   tr.fitness_mean = sum_mean/tr.num_trials
   tr.fitness_variance = sum_vars/tr.num_trials
   #println("  tr.fitness_variance: ",tr.fitness_variance)
@@ -110,13 +113,14 @@ function evolve( tr::temporal_result_type )
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
       #println("   astdev: ",sqrt(att_vars))
-      count_below_cutoff = count_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
+      count_max_below_cutoff = count_max_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
+      count_avg_below_cutoff = count_avg_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
       cumm_count_below_cutoff += count_below_cutoff
       #println("  count below cutoff: ",count_below_cutoff,"   cumm_count_below_cutoff: ",cumm_count_below_cutoff)
     end
   end
-  #tr.mean_fraction_subpops_below_cutoff = cumm_count_below_cutoff/tr.num_subpops/tr.ngens  # commented out 4/4/17
-  tr.mean_fraction_subpops_below_cutoff = cumm_count_below_cutoff/tr.ngens  # added  4/4/17
+  #mean_max_subpops_below_cutoff = cumm_count_below_cutoff/tr.num_subpops/tr.ngens  # commented out 4/4/17
+  mean_max_subpops_below_cutoff = cumm_count_below_cutoff/tr.ngens  # added  4/4/17
   tr.fitness_mean = mean(cumm_means/tr.ngens)
   #println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
   #println("cumm_count_below_cutoff: ",cumm_count_below_cutoff)
@@ -221,7 +225,7 @@ function attr_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   return ave_vars
 end
 
-function count_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::Float64 )
+function count_max_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::Float64 )
   count = 0
   #for fm = mmeans  # modified 4/4/17
     fm = maximum(mmeans)   # added 4/4/17
@@ -229,6 +233,15 @@ function count_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::
       count += 1
     end
   #end
+  count
+end
+
+function count_avg_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::Float64 )
+  count = 0
+    fm = mean(mmeans)   # added 4/12/17
+    if fm < opt_loss_cutoff
+      count += 1
+    end
   count
 end
 

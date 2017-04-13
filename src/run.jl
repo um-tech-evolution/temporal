@@ -3,13 +3,17 @@ using TemporalEvolution
 function run_trials( simname::AbstractString ) 
   stream = open("$(simname).csv","w")
   println("stream: ",stream)
-  if !isdefined(:topology)
-    global topology="circular"
+  if !isdefined(:topology) && !isdefined(:topology_list)
+    global topology="circular" 
+  elseif isdefined(:topology) && !isdefined(:topology_list)
+    println("isdef topology !isdef topology_list")
+    global topology_list = [topology]
   end
+  println("topology_list: ",topology_list)
   #println("linear fitness: ",linear_fitness)
   #println("burn_in: ",burn_in)
   tr = temporal_result( T, N, num_attributes, num_subpops_list[1], ngens, mutation_stddev_list[1], num_emmigrants_list[1], 
-      move_range, move_time_interval_list[1], opt_loss_cutoff, horiz_select_list[1], min_fit, topology=topology,
+      move_range, move_time_interval_list[1], opt_loss_cutoff, horiz_select_list[1], min_fit, topology=topology_list[1],
       uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in )
   tr_list_run = TemporalEvolution.temporal_result_type[]
   trial=1
@@ -18,12 +22,12 @@ function run_trials( simname::AbstractString )
       for num_subpops in num_subpops_list
         for num_emmigrants in num_emmigrants_list
           for horiz_select in horiz_select_list
-            #for tr = 1:T
+            for topology in topology_list
               tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, 
                  opt_loss_cutoff, horiz_select, min_fit, topology=topology,
                  uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in )
               Base.push!(tr_list_run, tr )
-            #end
+            end
             #println("  length tr_list_run: ",length(tr_list_run))
           end
         end

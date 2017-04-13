@@ -33,7 +33,8 @@ type temporal_result_type
   min_fit::Float64      # Lower bound on fitness
   linear_fitness::Bool      # if true, fitness is 0.5 - Euclidean distance
   topology::String      # Neighborhood topology for horizontal_transfer_by_fitness: must be "circular", "ring", "vonneumann", "moore", or "random"
-  mean_fraction_subpops_below_cutoff::Float64  # mean of time to optimum loss
+  mean_max_subpops_below_cutoff::Float64  # mean over generations of max fitness over subpops below cutoff
+  mean_avg_subpops_below_cutoff::Float64  # mean over generations of average fitness over subpops below cutoff
   fitness_mean::Float64
   fitness_variance::Float64
   attribute_variance::Float64

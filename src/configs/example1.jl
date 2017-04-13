@@ -25,6 +25,6 @@ const opt_loss_cutoff=0.2
 const horiz_select_list=[true]
 const uniform_start=false
 const min_fit = 0.0
-const topology="moore"
+const topology_list=["moore"]
 const linear_fitness=false
 const burn_in= 1.0    # generations of burn_in as a multiple of N
