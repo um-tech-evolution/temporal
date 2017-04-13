@@ -16,7 +16,7 @@ end
 Runs evolve()  tr.num_subpops times, and averages the results.
 """
 function repeat_evolve( tr::temporal_result_type )
-  println("rep_evolve: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev)
+  println("rep_evolve: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,"  topology: ",tr.topology)
   if tr.num_trials == 1
     return evolve( tr )
   end
@@ -62,8 +62,9 @@ function evolve( tr::temporal_result_type )
   cumm_means = zeros(tr.num_subpops)
   cumm_vars = zeros(tr.num_subpops)
   cumm_attr_vars = zeros(tr.num_subpops)
-  count_below_cutoff = 0
-  cumm_count_below_cutoff = 0
+  #count_below_cutoff = 0
+  cumm_count_max_below_cutoff = 0
+  cumm_count_avg_below_cutoff = 0
   ideal = fill( tr.ideal_init, tr.num_attributes )
   subpop_size = Int(floor(tr.N/tr.num_subpops))
   if subpop_size*tr.num_subpops != tr.N
@@ -85,13 +86,8 @@ function evolve( tr::temporal_result_type )
   end
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
-  for g = 2:(tr.ngens+int_burn_in)
+  for g = 1:(tr.ngens+int_burn_in)
     if g > int_burn_in && g % tr.move_time_interval == 0
-      #println("g: ",g,"  mmeans: ",mmeans)
-      #print("   fstdev: ",sqrt(vvars))
-      #print("   astdev: ",sqrt(att_vars))
-      #println("  count below cutoff: ",count_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff ))
-      #println("  count below cutoff: ",count_below_cutoff,"   cumm_count_below_cutoff: ",cumm_count_below_cutoff)
       move_optima( ideal, tr.move_range )
     end
     mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
@@ -99,9 +95,11 @@ function evolve( tr::temporal_result_type )
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )
     end
     mmeans, vvars = means( meta_pop, vt )
+    #println("g: ",g,"  mmeans: ",mmeans)
+    #println("vvars: ",vvars)
     if tr.num_subpops >= 9 && tr.ne > 0 && tr.topology=="circular"
       horiz_transfer_circular!( meta_pop, tr, vt, ideal, id, g, neg_select=tr.horiz_select, emmigrant_select=tr.horiz_select )
-    elseif  tr.num_subpops >= 9 && tr.ne > 0 && tr.topology!="circular"
+    elseif  tr.num_subpops >= 9 && tr.ne > 0 && tr.topology!="circular" && tr.topology!="none"
       horiz_transfer_by_fitness!( meta_pop, tr, vt, ideal, mmeans, id, neg_select=tr.horiz_select, topology=tr.topology, emmigrant_select=tr.horiz_select )
     end
     if g > int_burn_in  # data collection
@@ -115,12 +113,16 @@ function evolve( tr::temporal_result_type )
       #println("   astdev: ",sqrt(att_vars))
       count_max_below_cutoff = count_max_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
       count_avg_below_cutoff = count_avg_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
-      cumm_count_below_cutoff += count_below_cutoff
-      #println("  count below cutoff: ",count_below_cutoff,"   cumm_count_below_cutoff: ",cumm_count_below_cutoff)
+      #println("count_max_below_cutoff: ",count_avg_below_cutoff )
+      #println("count_avg_below_cutoff: ",count_avg_below_cutoff )
+      cumm_count_max_below_cutoff += count_max_below_cutoff
+      cumm_count_avg_below_cutoff += count_avg_below_cutoff
+      #println("cumm_count_max below cutoff: ",cumm_count_max_below_cutoff,"   cumm_count_ave_below_cutoff: ",cumm_count_avg_below_cutoff)
     end
   end
   #mean_max_subpops_below_cutoff = cumm_count_below_cutoff/tr.num_subpops/tr.ngens  # commented out 4/4/17
-  mean_max_subpops_below_cutoff = cumm_count_below_cutoff/tr.ngens  # added  4/4/17
+  tr.mean_max_subpops_below_cutoff = cumm_count_max_below_cutoff/tr.ngens  
+  tr.mean_avg_subpops_below_cutoff = cumm_count_avg_below_cutoff/tr.ngens  
   tr.fitness_mean = mean(cumm_means/tr.ngens)
   #println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
   #println("cumm_count_below_cutoff: ",cumm_count_below_cutoff)
@@ -233,6 +235,7 @@ function count_max_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cuto
       count += 1
     end
   #end
+  #println("count_max_pops_below_fit_cutoff: fm: ",fm," count: ",count)
   count
 end
 
@@ -242,6 +245,7 @@ function count_avg_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cuto
     if fm < opt_loss_cutoff
       count += 1
     end
+  #println("count_avg_pops_below_fit_cutoff: fm: ",fm," count: ",count)
   count
 end
 
