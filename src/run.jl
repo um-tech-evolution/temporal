@@ -13,8 +13,8 @@ function run_trials( simname::AbstractString )
   #println("linear fitness: ",linear_fitness)
   #println("burn_in: ",burn_in)
   tr = temporal_result( T, N, num_attributes, num_subpops_list[1], ngens, mutation_stddev_list[1], num_emmigrants_list[1], 
-      move_range, move_time_interval_list[1], opt_loss_cutoff, horiz_select_list[1], min_fit, topology=topology_list[1],
-      uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in )
+      move_range, move_time_interval_list[1], horiz_select_list[1], min_fit, topology=topology_list[1],
+      uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope_list[1] )
   tr_list_run = TemporalEvolution.temporal_result_type[]
   trial=1
   for mutation_stddev in mutation_stddev_list
@@ -23,10 +23,12 @@ function run_trials( simname::AbstractString )
         for num_emmigrants in num_emmigrants_list
           for horiz_select in horiz_select_list
             for topology in topology_list
-              tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, 
-                 opt_loss_cutoff, horiz_select, min_fit, topology=topology,
-                 uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in )
-              Base.push!(tr_list_run, tr )
+              for linfit_slope in linfit_slope_list
+                tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, 
+                  horiz_select, min_fit, topology=topology,
+                  uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
+                Base.push!(tr_list_run, tr )
+              end
             end
             #println("  length tr_list_run: ",length(tr_list_run))
           end
@@ -70,7 +72,7 @@ if length(ARGS) == 0
 else
   simname = ARGS[1]
 end
-srand(1)
+#srand(1)
 include("$(simname).jl")
 println("simname: ",simname)
 #println("simtype: ",simtype)

@@ -18,13 +18,12 @@ end
 
 @doc """ fitness()
 A strongly-peaked fitness function.
-TODO:  add the parameters to the arguments.
 """
 function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; use_atan::Bool=false,
-    min_fit::Float64=0.0, linear_fitness::Bool=false )
+    min_fit::Float64=0.0, linear_fitness::Bool=false, linfit_slope::Float64=1.0 )
   dis = euclidean_distance( attributes, ideal )
   if linear_fitness
-    fit = max( min_fit, 0.5-euclidean_distance( attributes, ideal ))
+    fit = max( min_fit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
     #println("l fit: ",fit)
     return fit
   end

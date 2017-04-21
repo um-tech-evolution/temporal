@@ -1,4 +1,4 @@
-export variant_type, fitness_location_type, Population, PopList
+export variant_type, fitness_location_type, Population, PopList, temporal_result_type, subpop_properties_type, variant_type, fitness_location_type
 using Distributions
 using StatsBase
 typealias Population Array{Int64,1}
@@ -29,14 +29,20 @@ type temporal_result_type
   ideal_init::Float64     # initial values of ideal corresponding to initial optima
   move_range::Float64     # on optima change, a uniform random number in the interval [-move_range,move_range] is added to each ideal
   move_time_interval::Int64  # The optima are moved every move_time_interval generations
-  opt_loss_cutoff::Float64   # The fitness at which a population is considered to have lost the optimum
+  #opt_loss_cutoff::Float64   # The fitness at which a population is considered to have lost the optimum
   min_fit::Float64      # Lower bound on fitness
   linear_fitness::Bool      # if true, fitness is 0.5 - Euclidean distance
-  topology::String      # Neighborhood topology for horizontal_transfer_by_fitness: must be "circular", "ring", "vonneumann", "moore", or "random"
-  mean_max_subpops_below_cutoff::Float64  # mean over generations of max fitness over subpops below cutoff
-  mean_avg_subpops_below_cutoff::Float64  # mean over generations of average fitness over subpops below cutoff
+  linfit_slope::Float64
+  topology::String      # Neighborhood topology for horizontal_transfer_by_fitness: must be "circular", "ring", "vonneumann", "moore", "random", or "none"
+  mean_fraction_subpops_above_min_fit::Float64  # mean over generations of the fraction of subpops with an individual whose fitnsss is greater than min_fit
+  fraction_gens_with_subpop_above_min_fit::Float64
+  #mean_avg_subpops_below_cutoff::Float64  # mean over generations of average fitness over subpops below cutoff
   fitness_mean::Float64
   fitness_variance::Float64
   attribute_variance::Float64
 end
 
+type subpop_properties_type
+  max_above_cutoff::Bool
+  last_gen_above_cutoff::Int64
+end

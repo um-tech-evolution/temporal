@@ -1,4 +1,20 @@
-export horiz_transfer_circular!, new_emmigrants_funct, add_emmigrants, horiz_transfer_by_fitness!
+export horiz_transfer, horiz_transfer_circular!, new_emmigrants_funct, add_emmigrants, horiz_transfer_by_fitness!
+
+function horiz_transfer( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
+      id::Vector{Int64}, generation::Int64  )
+  if tr.topology == "none" || tr.num_subpops == 1
+    return
+  elseif tr.ne > 0 && tr.topology=="circular"
+      horiz_transfer_circular!( meta_pop, tr, vt, ideal, id, g, neg_select=tr.horiz_select, emmigrant_select=tr.horiz_select )
+  elseif  tr.ne > 0 && tr.topology=="ring" || tr.topology=="global"
+    horiz_transfer_by_fitness!( meta_pop, tr, vt, ideal, mmeans, id, neg_select=tr.horiz_select, topology=tr.topology, emmigrant_select=tr.horiz_select )
+  elseif  tr.num_subpops >= 9 && tr.ne > 0 && tr.topology=="vonneumann" || tr.topology!="moore"
+    horiz_transfer_by_fitness!( meta_pop, tr, vt, ideal, mmeans, id, neg_select=tr.horiz_select, topology=tr.topology, emmigrant_select=tr.horiz_select )
+  elseif tr.num_subpops > 1 && tr.topology!="none" && tr.ne > 0
+    println("Warning!!! no horizontal transfer done with tr.num_subpops=",tr.num_subpops," and topology=",tr.topology)
+  end
+end
+
 @doc """ horiz_transfer_circular!()
   Transfers variants between subpopulations in a circular fashion (either forward or backward).
   Elements to be transfered are selected by proportional selection.

@@ -1,22 +1,24 @@
-export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, means
+export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, means,
+  count_individuals_below_cutoff, count_subpops_above_minfit
     
 #include("types.jl")
 #include("propsel.jl")
 #include("fitness.jl") 
 
 function temporal_result( num_trials::Int64, N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutation_stddev::Float64, num_emmigrants::Int64,
-    move_range::Float64, move_time_interval::Int64, opt_loss_cutoff::Float64, horiz_select::Bool=false, min_fit::Float64=0.0; topology::String="circular", 
-    uniform_start::Bool=false, linear_fitness::Bool=false, burn_in::Float64=1.0 )
+    move_range::Float64, move_time_interval::Int64, horiz_select::Bool=false, min_fit::Float64=0.0; topology::String="circular", 
+    uniform_start::Bool=false, linear_fitness::Bool=false, linfit_slope::Float64=1.0, burn_in::Float64=1.0 )
   ideal_init = 0.5
   return temporal_result_type( num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, mutation_stddev,
-      ideal_init, move_range, move_time_interval, opt_loss_cutoff, min_fit, linear_fitness, topology, 0.0, 0.0, 0.0, 0.0, 0.0 )
+      ideal_init, move_range, move_time_interval, min_fit, linear_fitness, linfit_slope, topology, 0.0, 0.0, 0.0, 0.0, 0.0 )
 end
 
 @doc """ function repeat_evolve( )
 Runs evolve()  tr.num_subpops times, and averages the results.
 """
 function repeat_evolve( tr::temporal_result_type )
-  println("rep_evolve: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,"  topology: ",tr.topology)
+  println("rep_evolve: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,
+        "  topology: ",tr.topology,"  linfit_slope: ",tr.linfit_slope)
   if tr.num_trials == 1
     return evolve( tr )
   end
@@ -24,21 +26,21 @@ function repeat_evolve( tr::temporal_result_type )
   sum_mean = 0.0
   sum_vars = 0.0
   sum_attr_vars = 0.0
-  sum_max_count_below_cutoff = 0
+  sum_mean_fraction_subpops_above_min_fit = 0
   sum_avg_count_below_cutoff = 0
 
   for t = 1:tr.num_trials
     tr = evolve( tr ) 
     Base.push!( tr_list, deepcopy(tr) )
-    sum_max_count_below_cutoff += tr.mean_max_subpops_below_cutoff
-    sum_avg_count_below_cutoff += tr.mean_avg_subpops_below_cutoff
+    sum_mean_fraction_subpops_above_min_fit+= tr.mean_fraction_subpops_above_min_fit
+    sum_avg_count_below_cutoff += tr.fraction_gens_with_subpop_above_min_fit
     #println("t: ",t," tr.fitness_variance: ",tr.fitness_variance)
     sum_mean += tr.fitness_mean
     sum_vars += tr.fitness_variance
     sum_attr_vars += tr.attribute_variance
   end
-  tr.mean_max_subpops_below_cutoff = sum_max_count_below_cutoff/tr.num_trials
-  tr.mean_avg_subpops_below_cutoff = sum_avg_count_below_cutoff/tr.num_trials
+  tr.mean_fraction_subpops_above_min_fit = sum_mean_fraction_subpops_above_min_fit/tr.num_trials
+  tr.fraction_gens_with_subpop_above_min_fit = sum_avg_count_below_cutoff/tr.num_trials
   tr.fitness_mean = sum_mean/tr.num_trials
   tr.fitness_variance = sum_vars/tr.num_trials
   #println("  tr.fitness_variance: ",tr.fitness_variance)
@@ -56,14 +58,12 @@ function evolve( tr::temporal_result_type )
   #println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,"  topology: ",tr.topology)
   int_burn_in = Int(round(tr.burn_in*tr.N))
   id = [0]
-  mmeans = zeros(tr.num_subpops)
-  vvars = zeros(tr.num_subpops)
   att_vars = zeros(tr.num_subpops)
   cumm_means = zeros(tr.num_subpops)
   cumm_vars = zeros(tr.num_subpops)
   cumm_attr_vars = zeros(tr.num_subpops)
-  #count_below_cutoff = 0
-  cumm_count_max_below_cutoff = 0
+  cumm_count_subpops_above_min_fit = 0
+  cumm_count_gens_with_subpop_above_min_fit = 0
   cumm_count_avg_below_cutoff = 0
   ideal = fill( tr.ideal_init, tr.num_attributes )
   subpop_size = Int(floor(tr.N/tr.num_subpops))
@@ -71,65 +71,77 @@ function evolve( tr::temporal_result_type )
     error("N must equal subpop_size*tr.num_subpops")
   end
   vt = Dict{Int64,variant_type}()
-  if tr.uniform_start
-    meta_pop = [  fill(1,subpop_size)  for j = 1:tr.num_subpops ]
-    attr = ideal
-    vt[1] = variant_type( fitness( attr, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness ), attr )
-    id[1] += 1
-  else
-    meta_pop = [ (j-1)*subpop_size+collect(1:subpop_size)  for j = 1:tr.num_subpops ]
-    for i = 1:tr.N
-      attr = rand(tr.num_attributes)
-      vt[i] = variant_type( fitness( attr, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness ), attr )
-    end
-    id[1] += tr.N
-  end
+  meta_pop = init_meta_pop( tr, vt, ideal, id )
+  subpop_live = fill(true,tr.num_subpops)
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
   for g = 1:(tr.ngens+int_burn_in)
     if g > int_burn_in && g % tr.move_time_interval == 0
       move_optima( ideal, tr.move_range )
+      #println("optimum moved")
     end
     mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
+    
     for  j = 1:tr.num_subpops
-      meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )
+      meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
     end
+    
     mmeans, vvars = means( meta_pop, vt )
     #println("g: ",g,"  mmeans: ",mmeans)
     #println("vvars: ",vvars)
-    if tr.num_subpops >= 9 && tr.ne > 0 && tr.topology=="circular"
-      horiz_transfer_circular!( meta_pop, tr, vt, ideal, id, g, neg_select=tr.horiz_select, emmigrant_select=tr.horiz_select )
-    elseif  tr.num_subpops >= 9 && tr.ne > 0 && tr.topology!="circular" && tr.topology!="none"
-      horiz_transfer_by_fitness!( meta_pop, tr, vt, ideal, mmeans, id, neg_select=tr.horiz_select, topology=tr.topology, emmigrant_select=tr.horiz_select )
-    end
+    #println("vt: ",vt)
+    horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
     if g > int_burn_in  # data collection
       #(mmeans, vvars) = means( meta_pop, vt )
       cumm_means += mmeans
       cumm_vars += vvars
-      #print("g: ",g,"  mmeans: ",mmeans)
+      #=  uncomment for fitness test
+      for  j = 1:tr.num_subpops
+        #println("j: ",j," ",[ (vt[v].attributes[1], vt[v].fitness) for v in meta_pop[j] ])
+        println("j: ",j," ",[ vt[v].attributes[1] for v in meta_pop[j] ])
+        println("variance: ",var([ vt[v].attributes[1] for v in meta_pop[j]]),"  std: ",std([ vt[v].attributes[1] for v in meta_pop[j]]))
+      end
+      =#
+      #print("g: ",g,"  mmeans: ",mmeans,"  ")
       #print("   fstdev: ",sqrt(vvars))
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
       #println("   astdev: ",sqrt(att_vars))
-      count_max_below_cutoff = count_max_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
-      count_avg_below_cutoff = count_avg_pops_below_fit_cutoff( mmeans, tr.opt_loss_cutoff )
-      #println("count_max_below_cutoff: ",count_avg_below_cutoff )
-      #println("count_avg_below_cutoff: ",count_avg_below_cutoff )
-      cumm_count_max_below_cutoff += count_max_below_cutoff
-      cumm_count_avg_below_cutoff += count_avg_below_cutoff
-      #println("cumm_count_max below cutoff: ",cumm_count_max_below_cutoff,"   cumm_count_ave_below_cutoff: ",cumm_count_avg_below_cutoff)
+      count_subpops_above_min_fit = count_subpops_above_minfit( meta_pop, vt, tr.min_fit )
+      count_gens_with_subpop_above_min_fit = count_subpops_above_min_fit > 0 ? 1 : 0
+      #print("  count_subpops_above_min_fit: ",count_subpops_above_min_fit)
+      cumm_count_subpops_above_min_fit += count_subpops_above_min_fit
+      #println("  count_gens_with_subpop_above_min_fit: ",count_gens_with_subpop_above_min_fit)
+      cumm_count_gens_with_subpop_above_min_fit += count_gens_with_subpop_above_min_fit
     end
   end
-  #mean_max_subpops_below_cutoff = cumm_count_below_cutoff/tr.num_subpops/tr.ngens  # commented out 4/4/17
-  tr.mean_max_subpops_below_cutoff = cumm_count_max_below_cutoff/tr.ngens  
-  tr.mean_avg_subpops_below_cutoff = cumm_count_avg_below_cutoff/tr.ngens  
+  tr.mean_fraction_subpops_above_min_fit = cumm_count_subpops_above_min_fit/tr.ngens/tr.num_subpops
+  tr.fraction_gens_with_subpop_above_min_fit = cumm_count_gens_with_subpop_above_min_fit/tr.ngens  
   tr.fitness_mean = mean(cumm_means/tr.ngens)
   #println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
-  #println("cumm_count_below_cutoff: ",cumm_count_below_cutoff)
-  #println("cumm_count_below_cutoff/num_subpops: ",cumm_count_below_cutoff/tr.num_subpops)
+  #println("cumm_count_subpops_above_min_fit: ",cumm_count_subpops_above_min_fit)
+  #println("cumm_count_gens_with_subpop_above_min_fit: ",cumm_count_gens_with_subpop_above_min_fit)
   tr.fitness_variance = mean(cumm_vars/tr.ngens)
   tr.attribute_variance = mean(cumm_attr_vars/tr.ngens)
   return tr
+end
+
+function init_meta_pop( tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64} )
+  subpop_size = Int(floor(tr.N/tr.num_subpops))
+  if tr.uniform_start
+    meta_pop = [  fill(1,subpop_size)  for j = 1:tr.num_subpops ]
+    attr = ideal
+    vt[1] = variant_type( fitness( attr, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness, linfit_slope=tr.linfit_slope ), attr )
+    id[1] += 1
+  else
+    meta_pop = [ (j-1)*subpop_size+collect(1:subpop_size)  for j = 1:tr.num_subpops ]
+    for i = 1:tr.N
+      attr = rand(tr.num_attributes)
+      vt[i] = variant_type( fitness( attr, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness, linfit_slope=tr.linfit_slope ), attr )
+    end
+    id[1] += tr.N
+  end
+  return meta_pop
 end
 
 function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )
@@ -145,7 +157,8 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
       meta_pop[j][i] = id[1]
       id[1] += 1
       vt[meta_pop[j][i]] = mutate_variant( v_lists[j][i], tr.mutation_stddev )
-      vt[meta_pop[j][i]].fitness = fitness( vt[meta_pop[j][i]].attributes, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness )
+      vt[meta_pop[j][i]].fitness = fitness( vt[meta_pop[j][i]].attributes, ideal, min_fit=tr.min_fit, 
+          linear_fitness=tr.linear_fitness, linfit_slope=tr.linfit_slope )
       #println("A j: ",j,"  i: ",i," meta_pop[j][i]: ",meta_pop[j][i],"  vt[meta_pop[j][i]]: ",vt[meta_pop[j][i]])
     end
   end
@@ -227,11 +240,39 @@ function attr_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   return ave_vars
 end
 
-function count_max_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::Float64 )
+@doc """ count_individuals_above_minfit()
+  Counts the number of individuals in a subpop whose fitness is greater than min_fit
+"""
+function count_individuals_above_minfit( subpop::Population, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+  count = 0
+  for v in subpop
+    if variant_table[v].fitness > min_fit
+      count += 1
+    end
+  end
+  return count
+end
+
+@doc """ function count_subpops_above_minfit( )
+  Counts the number of subpops where the fitness of some individual is above min_fit
+"""
+function count_subpops_above_minfit( meta_pop::PopList, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+  num_subpops = length(meta_pop)
+  subpop_size = length(meta_pop[1])
+  count = 0
+  for j = 1:num_subpops
+    if count_individuals_above_minfit( meta_pop[j], variant_table, min_fit ) > 0
+      count += 1
+    end
+  end
+  return count
+end
+
+function count_max_pops_below_fit_cutoff( mmeans::Vector{Float64}, min_fit::Float64 )
   count = 0
   #for fm = mmeans  # modified 4/4/17
     fm = maximum(mmeans)   # added 4/4/17
-    if fm < opt_loss_cutoff
+    if fm < min_fit
       count += 1
     end
   #end
@@ -239,10 +280,10 @@ function count_max_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cuto
   count
 end
 
-function count_avg_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cutoff::Float64 )
+function count_avg_pops_below_fit_cutoff( mmeans::Vector{Float64}, min_fit::Float64 )
   count = 0
     fm = mean(mmeans)   # added 4/12/17
-    if fm < opt_loss_cutoff
+    if fm <= min_fit
       count += 1
     end
   #println("count_avg_pops_below_fit_cutoff: fm: ",fm," count: ",count)
@@ -250,10 +291,10 @@ function count_avg_pops_below_fit_cutoff( mmeans::Vector{Float64}, opt_loss_cuto
 end
 
 #=
-run_evolve(N,num_attributes,num_subpops, ngens,mutation_stddev,num_emmigrants,move_range,move_time_interval,opt_loss_cutoff,uniform_start,min_fit=min_fit,
+run_evolve(N,num_attributes,num_subpops, ngens,mutation_stddev,num_emmigrants,move_range,move_time_interval,min_fit,uniform_start,min_fit=min_fit,
       linear_fitness=linear_fitness)
 tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval,
-          opt_loss_cutoff, horiz_select, min_fit, uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in )
+          min_fit, horiz_select, min_fit, uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in )
 function ev_init()
   #include("types.jl")
   include("propsel.jl")
@@ -267,7 +308,7 @@ function ev_init()
   global mutation_stddev = 0.04
   global move_range = 0.1
   global move_time_interval = 5
-  global opt_loss_cutoff = 0.31
+  global min_fit = 0.31
   global horiz_select = false
   global uniform_start = false
   global min_fit = 0.3
