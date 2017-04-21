@@ -12,6 +12,7 @@ function run_trials( simname::AbstractString )
   println("topology_list: ",topology_list)
   #println("linear fitness: ",linear_fitness)
   #println("burn_in: ",burn_in)
+  horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
   tr = temporal_result( T, N, num_attributes, num_subpops_list[1], ngens, mutation_stddev_list[1], num_emmigrants_list[1], 
       move_range, move_time_interval_list[1], horiz_select_list[1], min_fit, topology=topology_list[1],
       uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope_list[1] )
@@ -55,11 +56,11 @@ function run_trials( simname::AbstractString )
   close(stream)
   stream = open("$(simname)00.csv","w")
   writeheader( STDOUT, num_subpops_list, tr )
-  writeheader( stream, num_subpops_list, tr )
+  #writeheader( stream, num_subpops_list, tr )
   for tr_res in tr_list_result
     for tr_result = tr_res[2]
       writerow(STDOUT,trial,tr_result)
-      writerow(stream,trial,tr_result)
+      #writerow(stream,trial,tr_result)
       trial += 1
     end
   end

@@ -2,18 +2,46 @@ export horiz_transfer, horiz_transfer_circular!, new_emmigrants_funct, add_emmig
 
 function horiz_transfer( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
       id::Vector{Int64}, generation::Int64  )
-  if tr.topology == "none" || tr.num_subpops == 1
+  if tr.topology == "none" || tr.num_subpops == 1 || tr.ne == 0
     return
   elseif tr.ne > 0 && tr.topology=="circular"
-      horiz_transfer_circular!( meta_pop, tr, vt, ideal, id, g, neg_select=tr.horiz_select, emmigrant_select=tr.horiz_select )
+    horiz_transfer_circular!( meta_pop, tr, vt, ideal, id, generation, neg_select=tr.horiz_select, emmigrant_select=tr.horiz_select )
   elseif  tr.ne > 0 && tr.topology=="ring" || tr.topology=="global"
     horiz_transfer_by_fitness!( meta_pop, tr, vt, ideal, mmeans, id, neg_select=tr.horiz_select, topology=tr.topology, emmigrant_select=tr.horiz_select )
-  elseif  tr.num_subpops >= 9 && tr.ne > 0 && tr.topology=="vonneumann" || tr.topology!="moore"
+  elseif  tr.num_subpops >= 9 && tr.ne > 0 && (tr.topology=="vonneumann" || tr.topology=="moore")
     horiz_transfer_by_fitness!( meta_pop, tr, vt, ideal, mmeans, id, neg_select=tr.horiz_select, topology=tr.topology, emmigrant_select=tr.horiz_select )
   elseif tr.num_subpops > 1 && tr.topology!="none" && tr.ne > 0
-    println("Warning!!! no horizontal transfer done with tr.num_subpops=",tr.num_subpops," and topology=",tr.topology)
+    println("nsbp: ",tr.num_subpops,"  topo: ",tr.topology,"  ne: ",tr.ne,"  test: ",(tr.num_subpops >= 9 && tr.ne > 0 && (tr.topology=="vonneumann" || tr.topology=="moore")))
+    println("Warning! no horizontal transfer done with tr.num_subpops=",tr.num_subpops," and topology=",tr.topology)
   end
 end
+
+#=
+# Check topology and horizontal transfer settings for correctness
+function horiz_param_check( topology_list::Vector{String}, num_subpops_list::Vector{Int64}, num_emmigrants_list::Vector{Int64} )
+  println("topology_list: ",topology_list)
+  println("num_subpops_list: ",num_subpops_list)
+  println("num_emmigrants_list: ",num_emmigrants_list)
+  for topology in topology_list
+    for num_subpops in num_subpops_list
+      for ne in num_emmigrants_list
+        print("t: ",topology,"  nsbp: ",num_subpops,"  ne: ",ne,"  ")
+        if topology == "none" || num_subpops == 1
+          println("OK")
+        elseif ne > 0 && topology=="circular"
+          println("OK")
+        elseif  ne > 0 && topology=="ring" || topology=="global"
+          println("OK")
+        elseif  num_subpops >= 9 && ne > 0 && topology=="vonneumann" || topology!="moore"
+          println("OK")
+        elseif num_subpops > 1 && topology!="none" && ne > 0
+          error("Warning!!! no horizontal transfer done with num_subpops=",num_subpops," and topology=",topology)
+        end
+      end
+    end
+  end
+end
+=#
 
 @doc """ horiz_transfer_circular!()
   Transfers variants between subpopulations in a circular fashion (either forward or backward).
@@ -60,9 +88,11 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
       k_forward = (j+tr.num_subpops-2)%tr.num_subpops+1
       k_backward = j%tr.num_subpops+1
       if means[k_forward] > means[j] 
-        k = (j+tr.num_subpops-2)%tr.num_subpops+1
+        #k = (j+tr.num_subpops-2)%tr.num_subpops+1
+        k = k_forward
       else
-        k = j%tr.num_subpops+1
+        #k = j%tr.num_subpops+1
+        k = k_backward
       end
       neighbor_list[j] = k
       #println("j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])

@@ -1,4 +1,4 @@
-export print_temporal_result, writeheader, writerow
+export print_temporal_result, writeheader, writerow, horiz_param_check
 #=
 Recommended command line to run:
 >  julia -L TemporalEvolution.jl run_spatial.jl configs/example1
@@ -6,6 +6,31 @@ Recommended command line to run:
 export  print_temporal_result, writeheader, writerow
 #include("types.jl")
   
+# Check topology and horizontal transfer settings for correctness
+function horiz_param_check( topology_list::Vector{String}, num_subpops_list::Vector{Int64}, num_emmigrants_list::Vector{Int64} )
+  #println("topology_list: ",topology_list)
+  #println("num_subpops_list: ",num_subpops_list)
+  #println("num_emmigrants_list: ",num_emmigrants_list)
+  for topology in topology_list
+    for num_subpops in num_subpops_list
+      for ne in num_emmigrants_list
+        #print("t: ",topology,"  nsbp: ",num_subpops,"  ne: ",ne,"  ")
+        if topology == "none" || num_subpops == 1
+          #println("OK")
+        elseif ne > 0 && topology=="circular"
+          #println("OK")
+        elseif  ne > 0 && topology=="ring" || topology=="global"
+          #println("OK")
+        elseif  num_subpops >= 9 && ne > 0 && (topology=="vonneumann" || topology=="moore")
+          #println("OK")
+        elseif num_subpops > 1 && topology!="none" && ne > 0
+          error("Warning!!! no horizontal transfer done with num_subpops=",num_subpops," and topology=",topology)
+        end
+      end
+    end
+  end
+  println("horizontal tranfer parameter check done.")
+end
 
 function print_temporal_result( tr::temporal_result_type )
   println("num_trials: ", tr.num_trials)
