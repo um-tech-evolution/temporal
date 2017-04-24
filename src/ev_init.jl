@@ -12,23 +12,23 @@ function ev_init()
   #include("../src/propsel.jl")
   #include("../src/fitness.jl")
   global num_trials=1
-  global N=27
-  global num_subpops = 9
-  global num_attributes = 3
+  global N=16
+  global num_subpops = 4
+  global num_attributes = 2
   global ngens = 10
-  global num_emmigrants = 2
-  global mutation_stddev = 0.04
+  global num_emmigrants = 1
+  global mutation_stddev = 0.03
   global move_range = 0.1
   global move_time_interval = 5
-  #global opt_loss_cutoff = 0.31
   global horiz_select = false
   global uniform_start = false
-  global min_fit = 0.3
-  global topology="vonneumann"   # must be one of "circular", "ring", "vonneumann", "moore", or "global" 
+  global min_fit = 0.43
+  global topology="ring"   # must be one of "circular", "ring", "vonneumann", "moore", or "global" 
   global linear_fitness=true
   global linfit_slope = 1.0
+  global burn_in = 0.0
   global tr = TemporalEvolution.temporal_result(num_trials, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, 
-    move_range, move_time_interval, horiz_select, min_fit, topology=topology, uniform_start=uniform_start, linear_fitness=linear_fitness, linfit_slope=linfit_slope )
+    move_range, move_time_interval, horiz_select, min_fit, topology=topology, uniform_start=uniform_start, linear_fitness=linear_fitness, linfit_slope=linfit_slope, burn_in=burn_in )
   global ideal = fill( tr.ideal_init, tr.num_attributes )
   global vt = Dict{Int64,variant_type}()
   tr

@@ -1,5 +1,5 @@
 export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, means,
-  count_individuals_below_cutoff, count_subpops_above_minfit
+  count_individuals_below_cutoff, count_subpops_below_minfit
     
 #include("types.jl")
 #include("propsel.jl")
@@ -26,21 +26,21 @@ function repeat_evolve( tr::temporal_result_type )
   sum_mean = 0.0
   sum_vars = 0.0
   sum_attr_vars = 0.0
-  sum_mean_fraction_subpops_above_min_fit = 0
-  sum_avg_count_below_cutoff = 0
+  sum_mean_fraction_subpops_below_min_fit = 0
+  sum_fract_gens_with_all_subpops_below_min_fit = 0
 
   for t = 1:tr.num_trials
     tr = evolve( tr ) 
     Base.push!( tr_list, deepcopy(tr) )
-    sum_mean_fraction_subpops_above_min_fit+= tr.mean_fraction_subpops_above_min_fit
-    sum_avg_count_below_cutoff += tr.fraction_gens_with_subpop_above_min_fit
+    sum_mean_fraction_subpops_below_min_fit+= tr.mean_fraction_subpops_below_min_fit
+    sum_fract_gens_with_all_subpops_below_min_fit += tr.fraction_gens_with_all_subpops_below_min_fit
     #println("t: ",t," tr.fitness_variance: ",tr.fitness_variance)
     sum_mean += tr.fitness_mean
     sum_vars += tr.fitness_variance
     sum_attr_vars += tr.attribute_variance
   end
-  tr.mean_fraction_subpops_above_min_fit = sum_mean_fraction_subpops_above_min_fit/tr.num_trials
-  tr.fraction_gens_with_subpop_above_min_fit = sum_avg_count_below_cutoff/tr.num_trials
+  tr.mean_fraction_subpops_below_min_fit = sum_mean_fraction_subpops_below_min_fit/tr.num_trials
+  tr.fraction_gens_with_all_subpops_below_min_fit = sum_fract_gens_with_all_subpops_below_min_fit/tr.num_trials
   tr.fitness_mean = sum_mean/tr.num_trials
   tr.fitness_variance = sum_vars/tr.num_trials
   #println("  tr.fitness_variance: ",tr.fitness_variance)
@@ -62,8 +62,8 @@ function evolve( tr::temporal_result_type )
   cumm_means = zeros(tr.num_subpops)
   cumm_vars = zeros(tr.num_subpops)
   cumm_attr_vars = zeros(tr.num_subpops)
-  cumm_count_subpops_above_min_fit = 0
-  cumm_count_gens_with_subpop_above_min_fit = 0
+  cumm_count_subpops_below_min_fit = 0
+  cumm_count_gens_with_all_subpops_below_min_fit = 0
   cumm_count_avg_below_cutoff = 0
   ideal = fill( tr.ideal_init, tr.num_attributes )
   subpop_size = Int(floor(tr.N/tr.num_subpops))
@@ -86,11 +86,12 @@ function evolve( tr::temporal_result_type )
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
     end
     
-    mmeans, vvars = means( meta_pop, vt )
+    mmeans = fmeans( meta_pop, vt )
+    horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
+    mmeans, vvars = means_vars( meta_pop, vt )
     #println("g: ",g,"  mmeans: ",mmeans)
     #println("vvars: ",vvars)
     #println("vt: ",vt)
-    horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
     if g > int_burn_in  # data collection
       #(mmeans, vvars) = means( meta_pop, vt )
       cumm_means += mmeans
@@ -102,25 +103,27 @@ function evolve( tr::temporal_result_type )
         println("variance: ",var([ vt[v].attributes[1] for v in meta_pop[j]]),"  std: ",std([ vt[v].attributes[1] for v in meta_pop[j]]))
       end
       =#
-      #print("g: ",g,"  mmeans: ",mmeans,"  ")
+      #println("g: ",g,"  mmeans: ",mmeans,"  ")
       #print("   fstdev: ",sqrt(vvars))
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
       #println("   astdev: ",sqrt(att_vars))
-      count_subpops_above_min_fit = count_subpops_above_minfit( meta_pop, vt, tr.min_fit )
-      count_gens_with_subpop_above_min_fit = count_subpops_above_min_fit > 0 ? 1 : 0
-      #print("  count_subpops_above_min_fit: ",count_subpops_above_min_fit)
-      cumm_count_subpops_above_min_fit += count_subpops_above_min_fit
-      #println("  count_gens_with_subpop_above_min_fit: ",count_gens_with_subpop_above_min_fit)
-      cumm_count_gens_with_subpop_above_min_fit += count_gens_with_subpop_above_min_fit
+      count_subpops_below_min_fit = count_subpops_below_minfit( meta_pop, vt, tr.min_fit )
+      count_gens_with_all_subpops_below_min_fit = count_subpops_below_min_fit == subpop_size ? 1 : 0
+      #print("  count_subpops_below_min_fit: ",count_subpops_below_min_fit)
+      #println("  count_gens_with_all_subpops_below_min_fit: ",count_gens_with_all_subpops_below_min_fit)
+      cumm_count_subpops_below_min_fit += count_subpops_below_min_fit
+      cumm_count_gens_with_all_subpops_below_min_fit += count_gens_with_all_subpops_below_min_fit
+      #println("cumm_count_subpops_below_min_fit: ",cumm_count_subpops_below_min_fit)
+      #println("cumm_count_gens_with_subpop_below_min_fit: ",cumm_count_gens_with_all_subpops_below_min_fit)
     end
   end
-  tr.mean_fraction_subpops_above_min_fit = cumm_count_subpops_above_min_fit/tr.ngens/tr.num_subpops
-  tr.fraction_gens_with_subpop_above_min_fit = cumm_count_gens_with_subpop_above_min_fit/tr.ngens  
+  tr.mean_fraction_subpops_below_min_fit = cumm_count_subpops_below_min_fit/tr.ngens/tr.num_subpops
+  tr.fraction_gens_with_all_subpops_below_min_fit = cumm_count_gens_with_all_subpops_below_min_fit/tr.ngens  
   tr.fitness_mean = mean(cumm_means/tr.ngens)
   #println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
-  #println("cumm_count_subpops_above_min_fit: ",cumm_count_subpops_above_min_fit)
-  #println("cumm_count_gens_with_subpop_above_min_fit: ",cumm_count_gens_with_subpop_above_min_fit)
+  #println("cumm_count_subpops_below_min_fit: ",cumm_count_subpops_below_min_fit)
+  #println("cumm_count_gens_with_subpop_below_min_fit: ",cumm_count_gens_with_all_subpops_below_min_fit)
   tr.fitness_variance = mean(cumm_vars/tr.ngens)
   tr.attribute_variance = mean(cumm_attr_vars/tr.ngens)
   return tr
@@ -218,12 +221,19 @@ function move_optima( ideal::Vector{Float64}, move_range::Float64; discrete_move
   end
 end
 
-function means( subpops::PopList, variant_table::Dict{Int64,variant_type} )
+function means_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   fit(v) = variant_table[v].fitness
   means = [ mean(map(fit,s)) for s in subpops ]
   vars = [ var(map(fit,s)) for s in subpops ]
   return means, vars
 end
+
+function fmeans( subpops::PopList, variant_table::Dict{Int64,variant_type} )
+  fit(v) = variant_table[v].fitness
+  means = [ mean(map(fit,s)) for s in subpops ]
+  return means
+end
+
 
 function attr_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   num_attributes = length(variant_table[1].attributes)
@@ -240,54 +250,35 @@ function attr_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   return ave_vars
 end
 
-@doc """ count_individuals_above_minfit()
-  Counts the number of individuals in a subpop whose fitness is greater than min_fit
+@doc """ count_individuals_below_minfit()
+  Counts the number of individuals in a subpop whose fitness is less than or equal to min_fit
 """
-function count_individuals_above_minfit( subpop::Population, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+function count_individuals_below_minfit( subpop::Population, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
   count = 0
   for v in subpop
-    if variant_table[v].fitness > min_fit
+    if variant_table[v].fitness <= min_fit
       count += 1
     end
+    #print(v,":",variant_table[v].fitness,"; ")
   end
+  #println("   count indivs below minfit: ",count)
   return count
 end
 
-@doc """ function count_subpops_above_minfit( )
-  Counts the number of subpops where the fitness of some individual is above min_fit
+@doc """ function count_subpops_below_minfit( )
+  Counts the number of subpops where the fitness of all individuals is less than or equal to min_fit
 """
-function count_subpops_above_minfit( meta_pop::PopList, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+function count_subpops_below_minfit( meta_pop::PopList, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   count = 0
   for j = 1:num_subpops
-    if count_individuals_above_minfit( meta_pop[j], variant_table, min_fit ) > 0
+    if count_individuals_below_minfit( meta_pop[j], variant_table, min_fit ) == subpop_size
       count += 1
     end
   end
+  #println("count_subpops_below_minfit: ",count)
   return count
-end
-
-function count_max_pops_below_fit_cutoff( mmeans::Vector{Float64}, min_fit::Float64 )
-  count = 0
-  #for fm = mmeans  # modified 4/4/17
-    fm = maximum(mmeans)   # added 4/4/17
-    if fm < min_fit
-      count += 1
-    end
-  #end
-  #println("count_max_pops_below_fit_cutoff: fm: ",fm," count: ",count)
-  count
-end
-
-function count_avg_pops_below_fit_cutoff( mmeans::Vector{Float64}, min_fit::Float64 )
-  count = 0
-    fm = mean(mmeans)   # added 4/12/17
-    if fm <= min_fit
-      count += 1
-    end
-  #println("count_avg_pops_below_fit_cutoff: fm: ",fm," count: ",count)
-  count
 end
 
 #=

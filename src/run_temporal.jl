@@ -29,7 +29,7 @@ function horiz_param_check( topology_list::Vector{String}, num_subpops_list::Vec
       end
     end
   end
-  println("horizontal tranfer parameter check done.")
+  println("horizontal transfer parameter check done.")
 end
 
 function print_temporal_result( tr::temporal_result_type )
@@ -50,8 +50,8 @@ function print_temporal_result( tr::temporal_result_type )
   println("linfit_slope: ",tr.linfit_slope)
   println("topology: ",tr.topology)
   println("min_fit: ",tr.min_fit)
-  println("mean_fraction_subpops_below_cutoff: ", tr.mean_fractio_subpops_above_min_fit)
-  println("mean_fraction_avg_subpops_below_cutoff: ", tr.fraction_gens_with_subpop_above_min_fit)
+  println("mean_fraction_subpops_below_cutoff: ", tr.mean_fraction_subpops_below_min_fit)
+  println("fraction_gens_with_all_subpops_below_min_fit: ", tr.fraction_gens_with_all_subpops_below_min_fit)
   println("fitness_mean: ", tr.fitness_mean)
   println("fitness_variance: ", tr.fitness_variance)
   println("attiribute_variance: ", tr.attribute_variance)
@@ -90,8 +90,8 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "mean_fitness",
     "stddev_fitness",
     "stddev_attributes",
-    "mean_fraction_subpops_above_min_fit",
-    "fraction_gens_with_subpop_above_min_fit"
+    "mean_fraction_subpops_below_min_fit",
+    "fraction_gens_with_all_subpops_below_min_fit"
   ]
   write(stream,join(heads,","),"\n")
 end
@@ -111,8 +111,8 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
           tr.fitness_mean,
           sqrt(tr.fitness_variance),
           sqrt(tr.attribute_variance),
-          tr.mean_fraction_subpops_above_min_fit,
-          tr.fraction_gens_with_subpop_above_min_fit,
+          tr.mean_fraction_subpops_below_min_fit,
+          tr.fraction_gens_with_all_subpops_below_min_fit,
   ]
   write(stream,join(line,","),"\n")
 end

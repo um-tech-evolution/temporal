@@ -34,15 +34,12 @@ type temporal_result_type
   linear_fitness::Bool      # if true, fitness is 0.5 - Euclidean distance
   linfit_slope::Float64
   topology::String      # Neighborhood topology for horizontal_transfer_by_fitness: must be "circular", "ring", "vonneumann", "moore", "random", or "none"
-  mean_fraction_subpops_above_min_fit::Float64  # mean over generations of the fraction of subpops with an individual whose fitnsss is greater than min_fit
-  fraction_gens_with_subpop_above_min_fit::Float64
-  #mean_avg_subpops_below_cutoff::Float64  # mean over generations of average fitness over subpops below cutoff
+  mean_fraction_subpops_below_min_fit::Float64  # mean over generations of the fraction of subpops with an individual whose fitnsss is greater than min_fit
+  fraction_gens_with_all_subpops_below_min_fit::Float64
+#  mean_fraction_subpops_above_min_fit::Float64  # mean over generations of the fraction of subpops with an individual whose fitnsss is greater than min_fit
+#  fraction_gens_with_subpop_above_min_fit::Float64
   fitness_mean::Float64
   fitness_variance::Float64
   attribute_variance::Float64
 end
 
-type subpop_properties_type
-  max_above_cutoff::Bool
-  last_gen_above_cutoff::Int64
-end
