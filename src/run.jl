@@ -73,7 +73,7 @@ if length(ARGS) == 0
 else
   simname = ARGS[1]
 end
-#srand(1)
+srand(1)
 include("$(simname).jl")
 println("simname: ",simname)
 #println("simtype: ",simtype)

@@ -79,6 +79,9 @@ function evolve( tr::temporal_result_type )
     if g > int_burn_in && g % tr.move_time_interval == 0
       move_optima( ideal, tr.move_range )
       #println("optimum moved")
+      #mmeans, vvars = means_vars( meta_pop, vt )
+      #println("g: ",g,"  metapop: ",meta_pop)
+      #println("g: ",g,"  mmeans: ",mmeans,"  ")
     end
     mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
     
@@ -103,15 +106,17 @@ function evolve( tr::temporal_result_type )
         println("variance: ",var([ vt[v].attributes[1] for v in meta_pop[j]]),"  std: ",std([ vt[v].attributes[1] for v in meta_pop[j]]))
       end
       =#
-      #println("g: ",g,"  mmeans: ",mmeans,"  ")
+      ##println("g: ",g,"  metapop: ",meta_pop)
+      ##println("g: ",g,"  mmeans: ",mmeans,"  ")
       #print("   fstdev: ",sqrt(vvars))
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
       #println("   astdev: ",sqrt(att_vars))
       count_subpops_below_min_fit = count_subpops_below_minfit( meta_pop, vt, tr.min_fit )
-      count_gens_with_all_subpops_below_min_fit = count_subpops_below_min_fit == subpop_size ? 1 : 0
-      #print("  count_subpops_below_min_fit: ",count_subpops_below_min_fit)
-      #println("  count_gens_with_all_subpops_below_min_fit: ",count_gens_with_all_subpops_below_min_fit)
+      count_gens_with_all_subpops_below_min_fit = (count_subpops_below_min_fit == tr.num_subpops) ? 1 : 0
+      #count_gens_with_all_subpops_below_min_fit += count_subpops_below_min_fit 
+      ##print("  count_subpops_below_min_fit: ",count_subpops_below_min_fit)
+      ##println("  count_gens_with_all_subpops_below_min_fit: ",count_gens_with_all_subpops_below_min_fit)
       cumm_count_subpops_below_min_fit += count_subpops_below_min_fit
       cumm_count_gens_with_all_subpops_below_min_fit += count_gens_with_all_subpops_below_min_fit
       #println("cumm_count_subpops_below_min_fit: ",cumm_count_subpops_below_min_fit)
@@ -256,12 +261,12 @@ end
 function count_individuals_below_minfit( subpop::Population, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
   count = 0
   for v in subpop
-    if variant_table[v].fitness <= min_fit
+    if variant_table[v].fitness <= min_fit + 10.0*eps()
       count += 1
     end
     #print(v,":",variant_table[v].fitness,"; ")
   end
-  #println("   count indivs below minfit: ",count)
+  ##println("   count indivs below minfit: ",count)
   return count
 end
 
@@ -277,7 +282,7 @@ function count_subpops_below_minfit( meta_pop::PopList, variant_table::Dict{Int6
       count += 1
     end
   end
-  #println("count_subpops_below_minfit: ",count)
+  ##println("count_subpops_below_minfit: ",count,"  subpop_size: ",subpop_size,"  min_fit: ",min_fit)
   return count
 end
 
