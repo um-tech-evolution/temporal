@@ -1,16 +1,16 @@
-export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, means,
-  count_individuals_below_cutoff, count_subpops_below_minfit
+export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, fmeans, means_vars, init_meta_pop,
+  count_individuals_below_minfit, count_subpops_below_minfit
     
 #include("types.jl")
 #include("propsel.jl")
 #include("fitness.jl") 
 
-function temporal_result( num_trials::Int64, N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutation_stddev::Float64, num_emmigrants::Int64,
-    move_range::Float64, move_time_interval::Int64, horiz_select::Bool=false, min_fit::Float64=0.0; topology::String="circular", 
+function temporal_result( simtype::Int64, num_trials::Int64, N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutation_stddev::Float64, 
+    num_emmigrants::Int64, move_range::Float64, move_time_interval::Int64, horiz_select::Bool=false, min_fit::Float64=0.0; topology::String="circular", 
     uniform_start::Bool=false, linear_fitness::Bool=false, linfit_slope::Float64=1.0, burn_in::Float64=1.0 )
   ideal_init = 0.5
-  return temporal_result_type( num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, mutation_stddev,
-      ideal_init, move_range, move_time_interval, min_fit, linear_fitness, linfit_slope, topology, 0.0, 0.0, 0.0, 0.0, 0.0 )
+  return temporal_result_type( simtype, num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, mutation_stddev,
+      ideal_init, move_range, move_time_interval, min_fit, linear_fitness, linfit_slope, topology, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0 )
 end
 
 @doc """ function repeat_evolve( )
@@ -18,7 +18,7 @@ Runs evolve()  tr.num_subpops times, and averages the results.
 """
 function repeat_evolve( tr::temporal_result_type )
   println("rep_evolve: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,
-        "  topology: ",tr.topology,"  linfit_slope: ",tr.linfit_slope)
+        "  topology: ",tr.topology,"  num_attributes: ",tr.num_attributes)
   if tr.num_trials == 1
     return evolve( tr )
   end
@@ -72,7 +72,6 @@ function evolve( tr::temporal_result_type )
   end
   vt = Dict{Int64,variant_type}()
   meta_pop = init_meta_pop( tr, vt, ideal, id )
-  subpop_live = fill(true,tr.num_subpops)
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
   for g = 1:(tr.ngens+int_burn_in)
@@ -96,7 +95,7 @@ function evolve( tr::temporal_result_type )
     #println("vvars: ",vvars)
     #println("vt: ",vt)
     if g > int_burn_in  # data collection
-      #(mmeans, vvars) = means( meta_pop, vt )
+      #(mmeans, vvars) = means_vars( meta_pop, vt )
       cumm_means += mmeans
       cumm_vars += vvars
       #=  uncomment for fitness test
@@ -226,6 +225,10 @@ function move_optima( ideal::Vector{Float64}, move_range::Float64; discrete_move
   end
 end
 
+@doc """ means_vars()
+means[s]  is the mean fitness of the individuals of subpopulation s
+vars[s]   is the variance of the fitnesses of the individuals of subpopulation s
+"""
 function means_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   fit(v) = variant_table[v].fitness
   means = [ mean(map(fit,s)) for s in subpops ]
@@ -239,16 +242,20 @@ function fmeans( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   return means
 end
 
-
+@doc """ attr_vars()
+Returns ave_vars, where ave_vars[s] is the mean (over attributes) of the variance of each attribute, where the
+  variance is taken over the members of subpopulation s.
+"""
 function attr_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   num_attributes = length(variant_table[1].attributes)
   #println("attr_vars: num_attributes: ",num_attributes)
   ave_vars = zeros(Float64,length(subpops))
   i = 1
   for s in subpops
+    # att_vars[i] is variance (taken over the individuals of subpopulation s) of attribute i
     att_vars = [ var([variant_table[v].attributes[j] for v in s]) for j =1:num_attributes]
     #println(s," att_vars: ",att_vars)
-    ave_vars[i] = mean(att_vars)
+    ave_vars[i] = mean(att_vars)   # mean over attributes
     i += 1
   end
   #println("ave_vars: ",ave_vars)
@@ -285,6 +292,7 @@ function count_subpops_below_minfit( meta_pop::PopList, variant_table::Dict{Int6
   ##println("count_subpops_below_minfit: ",count,"  subpop_size: ",subpop_size,"  min_fit: ",min_fit)
   return count
 end
+
 
 #=
 run_evolve(N,num_attributes,num_subpops, ngens,mutation_stddev,num_emmigrants,move_range,move_time_interval,min_fit,uniform_start,min_fit=min_fit,

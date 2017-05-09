@@ -83,6 +83,7 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
       id::Vector{Int64}; topology::String="ring", neg_select::Bool=true, emmigrant_select::Bool=true )
   #println("horiz_transfer_by_fitness!  topology: ",tr.topology,"  means: ",means) 
   neighbor_list = zeros(Int64,tr.num_subpops)
+  # Note:  k is the source population, j is the destination population
   if topology == "ring"
     for j = 1:tr.num_subpops
       k_forward = (j+tr.num_subpops-2)%tr.num_subpops+1
@@ -103,6 +104,7 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
     #nrows = Int(floor(tr.num_subpops/ncols))
     #println("horiz_transfer_by_fitness!  num_subpops: ",tr.num_subpops,"  ncols: ",ncols,"  nrows: ",nrows) 
     for j = 1:tr.num_subpops
+      #println("hzf j: ",j)
       if topology == "vonneumann" 
         if ncols < 3 || nrows < 3
           println("ncols: ",ncols,"  nrows: ",nrows)
@@ -134,7 +136,7 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
       else
         neighbor_list[j] = j
       end
-      k = max_index
+      k = max_index   # k is the index of the source population
       #println("j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
     end
   end
@@ -144,27 +146,27 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
 end
 
 @doc """ new_emmigrants_funct()
-  Choose emmigrants from source population.
+  Choose emmigrants from source population 
   Chosen using fitness proportional selection if emmigrant_select==true
   Chosen randonly if emmigrant_select==false
 """
 function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, neighbor_list::Vector{Int64}, 
     ideal::Vector{Float64}, id::Vector{Int64}; emmigrant_select::Bool=true )
   subpop_size = Int(floor(tr.N/tr.num_subpops))
-  emmigrants = PopList()
-  for j = 1:tr.num_subpops
+  emmigrants = PopList()  # emmigrants is the list of individuals that will emmigrate from subpop k
+  for k = 1:tr.num_subpops
     if emmigrant_select
-      Base.push!( emmigrants, propsel( meta_pop[j], tr.ne, vt ) )
+      Base.push!( emmigrants, propsel( meta_pop[k], tr.ne, vt ) )
     else
       s = StatsBase.sample(collect(1:subpop_size),tr.ne,replace=false,ordered=true) # random sample of indices
-      Base.push!( emmigrants, meta_pop[j][s] )   # Neutral
+      Base.push!( emmigrants, meta_pop[k][s] )   # Neutral
     end
   end
   #println("emmigrants: ",emmigrants)
-  new_emmigrants = Population[ Population() for j = 1:tr.num_subpops ]
+  new_emmigrants = Population[ Population() for j = 1:tr.num_subpops ]  # new_emmigrants[j] is the list of immigrants into subpop j
   for j = 1:tr.num_subpops
     k = neighbor_list[j]
-    if k != j
+    if k != j   # only create new_emmigrants if the source is different from the destination
       # Create new variants for the emmigrants in the new subpop
       for e in emmigrants[k]   # meta_pop[k] is the source, meta_pop[j] is the destination
         i = id[1]
@@ -172,6 +174,7 @@ function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::
         #println("new emmigrant i: ",i,"  subpop_index:",k,"  num_attributes: ",tr.num_attributes )
         vt[i] = deepcopy(vt[e])
         # The following line is not needed if fitness is static
+        # Not needed in the current program because fitness is calculated during mutation, and fitness shift does not happen between mutation and horiz transfer
         #vt[i].fitness = fitness( vt[i].attributes, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness )  
         #println("vt[",e,"]: ",vt[e])
         #println("vt[",i,"]: ",vt[i])
@@ -180,13 +183,19 @@ function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::
       end
     end
   end
+  #println("new_emmigrants: ",new_emmigrants)
   new_emmigrants
 end
 
+@doc """ add_emmitrants()
+For each j, removes length(new_emmigrants[j]) individuals from subpop[j] and replaces them with new_emmigrants[j].
+If neg_select==true, the the individuals to be removed are chosen by reverse proportional selection, otherwise randomly.
+"""
 function add_emmigrants( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, new_emmigrants::PopList;
       neg_select::Bool=true )
   subpop_size = Int(floor(tr.N/tr.num_subpops))
   for j = 1:tr.num_subpops
+    #println("add emmigrants j: ",j)
     if length(new_emmigrants[j]) > 0 
       pop_after_deletion = Population[]
       #println("j: ",j,"  j%tr.num_subpops+1: ",j%tr.num_subpops+1,"  (j+tr.num_subpops-2)%tr.num_subpops+1: ",(j+tr.num_subpops-2)%tr.num_subpops+1)
@@ -196,6 +205,7 @@ function add_emmigrants( meta_pop::PopList, tr::temporal_result_type, vt::Dict{I
         s = StatsBase.sample(collect(1:subpop_size),subpop_size-tr.ne,replace=false,ordered=true) # random sample of indices
         pop_after_deletion = meta_pop[j][s]
         #println("length(pop_after_deletion): ",length(pop_after_deletion))
+        #println("pop_after_deletion: ",pop_after_deletion)
       end
       meta_pop[j] = append!( pop_after_deletion, new_emmigrants[j] )
     end

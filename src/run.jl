@@ -9,13 +9,14 @@ function run_trials( simname::AbstractString )
     println("isdef topology !isdef topology_list")
     global topology_list = [topology]
   end
+  println("simtype: ",simtype)
   println("topology_list: ",topology_list)
   #println("linear fitness: ",linear_fitness)
   #println("burn_in: ",burn_in)
   horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
-  tr = temporal_result( T, N, num_attributes, num_subpops_list[1], ngens, mutation_stddev_list[1], num_emmigrants_list[1], 
+  tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutation_stddev_list[1], num_emmigrants_list[1], 
       move_range, move_time_interval_list[1], horiz_select_list[1], min_fit, topology=topology_list[1],
-      uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope_list[1] )
+      uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
   tr_list_run = TemporalEvolution.temporal_result_type[]
   trial=1
   for mutation_stddev in mutation_stddev_list
@@ -24,8 +25,8 @@ function run_trials( simname::AbstractString )
         for num_emmigrants in num_emmigrants_list
           for horiz_select in horiz_select_list
             for topology in topology_list
-              for linfit_slope in linfit_slope_list
-                tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, 
+              for num_attributes in num_attributes_list
+                tr = temporal_result( simtype, T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, 
                   horiz_select, min_fit, topology=topology,
                   uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
                 Base.push!(tr_list_run, tr )
@@ -38,7 +39,7 @@ function run_trials( simname::AbstractString )
     end
   end
   println("===================================")
-  tr_list_result = pmap(repeat_evolve, tr_list_run )
+  tr_list_result = pmap(run_evolution, tr_list_run )
   #println("length tr_list_result: ",length(tr_list_result))
   #println("tr_list_result[1]: ",tr_list_result[1])
   #println("tr_list_result[1][1]: ",tr_list_result[1][1])
@@ -68,12 +69,22 @@ function run_trials( simname::AbstractString )
   =#
 end    
 
+@everywhere function run_evolution( tr::temporal_result_type )
+  if tr.simtype == 1
+    return repeat_evolve_until_dead( tr )
+  elseif tr.simtype == 2
+    return repeat_evolve( tr )
+  else
+    error("illegal simtype in run.jl")
+  end
+end
+
 if length(ARGS) == 0
   simname = "configs/example2"
 else
   simname = ARGS[1]
 end
-srand(1)
+#srand(1)
 include("$(simname).jl")
 println("simname: ",simname)
 #println("simtype: ",simtype)
