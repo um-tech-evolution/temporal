@@ -14,20 +14,20 @@ function run_trials( simname::AbstractString )
   #println("linear fitness: ",linear_fitness)
   #println("burn_in: ",burn_in)
   horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
-  tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutation_stddev_list[1], num_emmigrants_list[1], 
-      move_range, move_time_interval_list[1], horiz_select_list[1], min_fit, topology=topology_list[1],
+  tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutStddev_list[1], num_emmigrants_list[1], 
+      move_range, move_time_interval_list[1], horiz_select_list[1], probHSelect, minFit, topology=topology_list[1],
       uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
   tr_list_run = TemporalEvolution.temporal_result_type[]
   trial=1
-  for mutation_stddev in mutation_stddev_list
+  for mutStddev in mutStddev_list
     for move_time_interval in move_time_interval_list
       for num_subpops in num_subpops_list
         for num_emmigrants in num_emmigrants_list
           for horiz_select in horiz_select_list
             for topology in topology_list
               for num_attributes in num_attributes_list
-                tr = temporal_result( simtype, T, N, num_attributes, num_subpops, ngens, mutation_stddev, num_emmigrants, move_range, move_time_interval, 
-                  horiz_select, min_fit, topology=topology,
+                tr = temporal_result( simtype, T, N, num_attributes, num_subpops, ngens, mutStddev, num_emmigrants, move_range, move_time_interval, 
+                  horiz_select, probHSelect, minFit, topology=topology,
                   uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
                 Base.push!(tr_list_run, tr )
               end

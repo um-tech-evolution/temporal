@@ -136,7 +136,11 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
       else
         neighbor_list[j] = j
       end
-      k = max_index   # k is the index of the source population
+      if rand() < tr.probHSelect
+        k = max_index   # k is the index of the source population
+      else
+        k = rand(length(nbd))
+      end
       #println("j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
     end
   end
@@ -175,7 +179,7 @@ function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::
         vt[i] = deepcopy(vt[e])
         # The following line is not needed if fitness is static
         # Not needed in the current program because fitness is calculated during mutation, and fitness shift does not happen between mutation and horiz transfer
-        #vt[i].fitness = fitness( vt[i].attributes, ideal, min_fit=tr.min_fit, linear_fitness=tr.linear_fitness )  
+        #vt[i].fitness = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
         #println("vt[",e,"]: ",vt[e])
         #println("vt[",i,"]: ",vt[i])
         Base.push!( new_emmigrants[j], i )

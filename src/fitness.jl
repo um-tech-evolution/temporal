@@ -20,10 +20,10 @@ end
 A strongly-peaked fitness function.
 """
 function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; use_atan::Bool=false,
-    min_fit::Float64=0.0, linear_fitness::Bool=false, linfit_slope::Float64=1.0 )
+    minFit::Float64=0.0, linear_fitness::Bool=false, linfit_slope::Float64=1.0 )
   dis = euclidean_distance( attributes, ideal )
   if linear_fitness
-    fit = max( min_fit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
+    fit = max( minFit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
     #println("l fit: ",fit)
     return fit
   end
@@ -36,5 +36,5 @@ function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; use_atan:
     fit = pdf(gpdf,dis)/inverse_scale
     #println("g fit: ",fit)
   end
-  return max( fit, min_fit )
+  return max( fit, minFit )
 end

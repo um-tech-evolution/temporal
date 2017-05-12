@@ -42,16 +42,17 @@ function print_temporal_result( tr::temporal_result_type )
   println("burn_in: ", tr.burn_in)
   println("uniform_start: ", tr.uniform_start)
   println("horiz_select: ", tr.horiz_select)
-  println("mutation_stddev: ", tr.mutation_stddev)
+  println("probHSelect: ", tr.probHSelect)
+  println("mutStddev: ", tr.mutStddev)
   println("ideal_init: ", tr.ideal_init)
   println("move_range: ", tr.move_range)
   println("move_time_interval: ", tr.move_time_interval)
   println("linear_fitness: ",tr.linear_fitness)
   println("linfit_slope: ",tr.linfit_slope)
   println("topology: ",tr.topology)
-  println("min_fit: ",tr.min_fit)
-  println("mean_fraction_subpops_below_cutoff: ", tr.mean_fraction_subpops_below_min_fit)
-  println("fraction_gens_with_all_subpops_below_min_fit: ", tr.fraction_gens_with_all_subpops_below_min_fit)
+  println("minFit: ",tr.minFit)
+  println("mean_fraction_subpops_below_cutoff: ", tr.mean_fraction_subpops_below_minFit)
+  println("fraction_gens_with_all_subpops_below_minFit: ", tr.fraction_gens_with_all_subpops_below_minFit)
   println("fitness_mean: ", tr.fitness_mean)
   println("fitness_variance: ", tr.fitness_variance)
   println("attiribute_variance: ", tr.attribute_variance)
@@ -71,9 +72,9 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     #"# num_emmigrants=$(tr.ne)",
     "# ngens=$(tr.ngens)",
     "# burn_in=$(tr.burn_in)",
-    #"# mutation_stddev=$(tr.mutation_stddev)",
+    #"# mutStddev=$(tr.mutStddev)",
     "# uniform_start=$(tr.uniform_start)",
-    "# min_fit=$(tr.min_fit)",
+    "# minFit=$(tr.minFit)",
     "# linear_fitness=$(tr.linear_fitness)",
     #"# linfit_slope=$(tr.linfit_slope)",
     #"# topology=$(tr.topology)"
@@ -83,7 +84,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "num_subpops",
     "subpop_size",
     "num_emigrants",
-    "mutation stddev",
+    "mutStddev",
     "num_attributes",
     "move_range",
     "move_time_interval",
@@ -96,8 +97,8 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "mean_fitness",
     "stddev_fitness",
     "stddev_attributes",
-    "mean_fraction_subpops_below_min_fit",
-    "fraction_gens_with_all_subpops_below_min_fit"
+    "mean_fraction_subpops_below_minFit",
+    "fraction_gens_with_all_subpops_below_minFit"
     ]
   elseif tr.simtype == 1
     heads2 = [
@@ -115,7 +116,7 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
       tr.num_subpops,
       Int(floor(tr.N/tr.num_subpops)),
       tr.ne,
-      tr.mutation_stddev,
+      tr.mutStddev,
       tr.num_attributes,
       tr.move_range,
       tr.move_time_interval,
@@ -128,8 +129,8 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
       tr.fitness_mean,
       sqrt(tr.fitness_variance),
       sqrt(tr.attribute_variance),
-      tr.mean_fraction_subpops_below_min_fit,
-      tr.fraction_gens_with_all_subpops_below_min_fit,
+      tr.mean_fraction_subpops_below_minFit,
+      tr.fraction_gens_with_all_subpops_below_minFit,
     ]
   elseif tr.simtype == 1
     line2 = Any[

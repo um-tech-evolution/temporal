@@ -1,7 +1,7 @@
 export repeat_evolve_until_dead, evolve_until_dead
 
 function repeat_evolve_until_dead( tr::temporal_result_type )
-  println("rep_evolve_until_dead: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,
+  println("rep_evolve_until_dead: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
         "  topology: ",tr.topology,"  linfit_slope: ",tr.linfit_slope)
   if tr.num_trials == 1
     return evolve( tr )
@@ -30,7 +30,7 @@ Doesn't keep track of the other statistics.
 See types.jl for the definition of temporal_result_type, and for the definition of the fields of this type.
 """
 function evolve_until_dead( tr::temporal_result_type )
-  #println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutation stddev: ",tr.mutation_stddev,"  topology: ",tr.topology)
+  #println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,"  topology: ",tr.topology)
   int_burn_in = Int(round(tr.burn_in*tr.N))
   id = [0]
   ideal = fill( tr.ideal_init, tr.num_attributes )
@@ -57,7 +57,7 @@ function evolve_until_dead( tr::temporal_result_type )
       #println("B g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
       move_optima( ideal, tr.move_range )
       #println(" g: ",g,"  #optimum just  moved   means: ", fmeans( meta_pop, vt ))
-      subpop_alive_opt_move_update( sbp, meta_pop,  vt, tr.min_fit )
+      subpop_alive_opt_move_update( sbp, meta_pop,  vt, tr.minFit )
       #println("A g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
       #println("A g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
     end
@@ -71,7 +71,7 @@ function evolve_until_dead( tr::temporal_result_type )
     mmeans, vvars = means_vars( meta_pop, vt )
     #println("  g: ",g," after horiz: ",mmeans)
     #println("vt: ",vt)
-    subpop_alive_gen_update( sbp, meta_pop, vt, tr.min_fit )
+    subpop_alive_gen_update( sbp, meta_pop, vt, tr.minFit )
     #println("  g: ",g,"  sbp.generational_subpop_alive: ",sbp.generational_subpop_alive )
     #println("  g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
     #println("  g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
@@ -111,21 +111,21 @@ function subpop_properties_init( num_subpops::Int64 )
   return subpop_properties(generational_subpop_alive,prev_subpop_alive,current_subpop_alive)
 end
 
-function subpop_alive_gen_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+function subpop_alive_gen_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,variant_type}, minFit::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   for j = 1:num_subpops
-    count_indivs_below_minfit = count_individuals_below_minfit( meta_pop[j], variant_table, min_fit )
+    count_indivs_below_minfit = count_individuals_below_minfit( meta_pop[j], variant_table, minFit )
     if sbp.generational_subpop_alive[j] && count_indivs_below_minfit == subpop_size
-      sbp.generational_subpop_alive[j] = false  # only set to false if previously true and all individuals have fitness <= min_fit
+      sbp.generational_subpop_alive[j] = false  # only set to false if previously true and all individuals have fitness <= minFit
     end
     if !sbp.current_subpop_alive[j] && count_indivs_below_minfit < subpop_size
-      sbp.current_subpop_alive[j] = true  # set to true if previously false and some individual has fitness greater than min_fit
+      sbp.current_subpop_alive[j] = true  # set to true if previously false and some individual has fitness greater than minFit
     end
   end
 end
 
-function subpop_alive_opt_move_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+function subpop_alive_opt_move_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,variant_type}, minFit::Float64 )
   if !any(sbp.prev_subpop_alive) 
     return
   end
@@ -133,7 +133,7 @@ function subpop_alive_opt_move_update( sbp::subpop_properties, meta_pop::PopList
   subpop_size = length(meta_pop[1])
   for j = 1:num_subpops
     if sbp.prev_subpop_alive[j] && !sbp.current_subpop_alive[j]
-      sbp.prev_subpop_alive[j] = false  # only set to false if previously true and all individuals have fitness less than min_fit
+      sbp.prev_subpop_alive[j] = false  # only set to false if previously true and all individuals have fitness less than minFit
     end
     sbp.current_subpop_alive[j] = false
   end
@@ -141,14 +141,14 @@ end
 
 @doc """ function update_subpop_alive!()
   A subpop is alive if it satisfies two conditions: it was alive in the previous generation, and it has at least one individual whose
-     fitness is strictly greater than min_fit.
+     fitness is strictly greater than minFit.
 """
-function update_subpop_alive!( subpop_alive::Vector{Bool}, prev_subpop_alive::Vector{Bool}, meta_pop::PopList, variant_table::Dict{Int64,variant_type}, min_fit::Float64 )
+function update_subpop_alive!( subpop_alive::Vector{Bool}, prev_subpop_alive::Vector{Bool}, meta_pop::PopList, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   for j = 1:num_subpops
-    if subpop_alive[j] && count_individuals_below_minfit( meta_pop[j], variant_table, min_fit ) == subpop_size
-      subpop_alive[j] = false  # only set to false if previously true and all individuals have fitness less than min_fit
+    if subpop_alive[j] && count_individuals_below_minfit( meta_pop[j], variant_table, minFit ) == subpop_size
+      subpop_alive[j] = false  # only set to false if previously true and all individuals have fitness less than minFit
     end
   end
 end
