@@ -54,6 +54,6 @@ function temporal_result( simtype::Int64, num_trials::Int64, N::Int64, num_attri
     num_emmigrants::Int64, move_range::Float64, move_time_interval::Int64, horiz_select::Bool=false, probHSelect::Float64=1.0, minFit::Float64=0.0; topology::String="circular", 
     uniform_start::Bool=false, linear_fitness::Bool=false, linfit_slope::Float64=1.0, burn_in::Float64=1.0 )
   ideal_init = 0.5
-  return temporal_result_type( simtype, num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, 1.0,
+  return temporal_result_type( simtype, num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, probHSelect,
       mutStddev, ideal_init, move_range, move_time_interval, minFit, linear_fitness, linfit_slope, topology, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0 )
 end

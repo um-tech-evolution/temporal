@@ -89,6 +89,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "move_range",
     "move_time_interval",
     "horiz_select",
+    "probHSelect",
     "topology",
     "linear_fitness_slope"
     ]
@@ -121,6 +122,7 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
       tr.move_range,
       tr.move_time_interval,
       tr.horiz_select,
+      tr.probHSelect,
       tr.topology,
       tr.linfit_slope
   ]

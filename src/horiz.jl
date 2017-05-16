@@ -81,7 +81,7 @@ end
 """    
 function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, means::Vector{Float64},
       id::Vector{Int64}; topology::String="ring", neg_select::Bool=true, emmigrant_select::Bool=true )
-  #println("horiz_transfer_by_fitness!  topology: ",tr.topology,"  means: ",means) 
+  #println("horiz_transfer_by_fitness!  topology: ",tr.topology,"  means: ",means,"  tr.probHSelect: ",tr.probHSelect) 
   neighbor_list = zeros(Int64,tr.num_subpops)
   # Note:  k is the source population, j is the destination population
   if topology == "ring"
@@ -123,8 +123,7 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
         println("topology: ",topology)
         error("topology in horiz_transfer_by_fitness! must be one of 'ring', 'moore', 'vonneumann',or 'global'.")
       end
-      #println("ncols: ",ncols,"  nrows: ",nrows,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
-      #max_mean = means[nbd[1]]
+      #println("horiz:  ncols: ",ncols,"  nrows: ",nrows,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
       max_index = nbd[1]
       for i = 1:length(nbd)
         if means[nbd[i]] > means[max_index]
@@ -136,12 +135,15 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
       else
         neighbor_list[j] = j
       end
-      if rand() < tr.probHSelect
-        k = max_index   # k is the index of the source population
+      rnd = rand()
+      if rnd < tr.probHSelect   # k is the index of the source population
+        k = max_index   # k  is the index of a max fitness subpop from the neighborhood
+        #println("max fitness  k: ",k,"  rnd: ",rnd)
       else
-        k = rand(length(nbd))
+        k = rand(1:length(nbd))  # k  is the index of a random subpop from the neighborhood
+        #println("rand nbd  k: ",k,"  rnd: ",rnd)
       end
-      #println("j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
+      #println("horiz:  j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
     end
   end
   #println("neighbor_list: ",neighbor_list)
