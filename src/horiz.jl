@@ -54,7 +54,7 @@ function horiz_transfer_circular!(  meta_pop::PopList, tr::temporal_result_type,
   #println("horiz_transfer_circular! forward: ",forward,"  num_attributes: ",tr.num_attributes)
   forward = generation % 2 == 0 ? true : false  
   subpop_size = Int(floor(tr.N/tr.num_subpops))
-  neighbor_list = zeros(Int64,tr.num_subpops)
+  source_subpop_list = zeros(Int64,tr.num_subpops)
   for j = 1:tr.num_subpops
     #println("j: ",j,"  j%tr.num_subpops+1: ",j%tr.num_subpops+1,"  (j+tr.num_subpops-2)%tr.num_subpops+1: ",(j+tr.num_subpops-2)%tr.num_subpops+1)
     if forward
@@ -62,9 +62,9 @@ function horiz_transfer_circular!(  meta_pop::PopList, tr::temporal_result_type,
     else
       k = j%tr.num_subpops+1
     end
-    neighbor_list[j] = k
+    source_subpop_list[j] = k
   end
-  new_emmigrants = new_emmigrants_funct( meta_pop, tr, vt, neighbor_list, ideal, id, emmigrant_select=emmigrant_select )
+  new_emmigrants = new_emmigrants_funct( meta_pop, tr, vt, source_subpop_list, ideal, id, emmigrant_select=emmigrant_select )
   #println("new emmigrants: ",new_emmigrants)
   add_emmigrants( meta_pop, tr, vt, new_emmigrants, neg_select=neg_select)
 end
@@ -82,7 +82,7 @@ end
 function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, means::Vector{Float64},
       id::Vector{Int64}; topology::String="ring", neg_select::Bool=true, emmigrant_select::Bool=true )
   #println("horiz_transfer_by_fitness!  topology: ",tr.topology,"  means: ",means,"  tr.probHSelect: ",tr.probHSelect) 
-  neighbor_list = zeros(Int64,tr.num_subpops)
+  source_subpop_list = zeros(Int64,tr.num_subpops)
   # Note:  k is the source population, j is the destination population
   if topology == "ring"
     for j = 1:tr.num_subpops
@@ -95,7 +95,7 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
         #k = j%tr.num_subpops+1
         k = k_backward
       end
-      neighbor_list[j] = k
+      source_subpop_list[j] = k
       #println("j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
     end
   else 
@@ -103,6 +103,7 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
     #ncols = Int(floor(sqrt(tr.num_subpops)))
     #nrows = Int(floor(tr.num_subpops/ncols))
     #println("horiz_transfer_by_fitness!  num_subpops: ",tr.num_subpops,"  ncols: ",ncols,"  nrows: ",nrows) 
+    #println("horiz_transfer_by_fitness!  means: ",means)
     for j = 1:tr.num_subpops
       #println("hzf j: ",j)
       if topology == "vonneumann" 
@@ -124,30 +125,33 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tr::temporal_result_typ
         error("topology in horiz_transfer_by_fitness! must be one of 'ring', 'moore', 'vonneumann',or 'global'.")
       end
       #println("horiz:  ncols: ",ncols,"  nrows: ",nrows,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
-      max_index = nbd[1]
-      for i = 1:length(nbd)
-        if means[nbd[i]] > means[max_index]
-          max_index = nbd[i]
-        end
-      end
-      if means[max_index] >= means[j]
-        neighbor_list[j] = max_index
-      else
-        neighbor_list[j] = j
-      end
+      #println("horiz: j: ",j,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
       rnd = rand()
       if rnd < tr.probHSelect   # k is the index of the source population
-        k = max_index   # k  is the index of a max fitness subpop from the neighborhood
-        #println("max fitness  k: ",k,"  rnd: ",rnd)
-      else
+        max_index = nbd[1]  # Choose subpop with the maximum mean fitness
+        for i = 1:length(nbd)
+          if means[nbd[i]] > means[max_index]
+            max_index = nbd[i]
+          end
+        end
+        if means[max_index] >= means[j]
+          source_subpop_list[j] = max_index
+        else
+          source_subpop_list[j] = j
+        end
+        k = source_subpop_list[j]
+        #println("max fitness  source_subpop_list[j]: ",source_subpop_list[j],"  rnd: ",rnd)
+      else   # choose a random subpop
         k = rand(1:length(nbd))  # k  is the index of a random subpop from the neighborhood
         #println("rand nbd  k: ",k,"  rnd: ",rnd)
+        source_subpop_list[j] = k
+        #println("rand fitness  source_subpop_list[j]: ",source_subpop_list[j],"  rnd: ",rnd)
       end
       #println("horiz:  j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
     end
   end
-  #println("neighbor_list: ",neighbor_list)
-  new_emmigrants = new_emmigrants_funct( meta_pop, tr, vt, neighbor_list, ideal, id, emmigrant_select=emmigrant_select )
+  #println("source_subpop_list: ",source_subpop_list)
+  new_emmigrants = new_emmigrants_funct( meta_pop, tr, vt, source_subpop_list, ideal, id, emmigrant_select=emmigrant_select )
   add_emmigrants( meta_pop, tr, vt, new_emmigrants, neg_select=neg_select)
 end
 
@@ -156,29 +160,29 @@ end
   Chosen using fitness proportional selection if emmigrant_select==true
   Chosen randonly if emmigrant_select==false
 """
-function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, neighbor_list::Vector{Int64}, 
+function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, source_subpop_list::Vector{Int64}, 
     ideal::Vector{Float64}, id::Vector{Int64}; emmigrant_select::Bool=true )
   subpop_size = Int(floor(tr.N/tr.num_subpops))
-  emmigrants = PopList()  # emmigrants is the list of individuals that will emmigrate from subpop k
-  for k = 1:tr.num_subpops
-    if emmigrant_select
-      Base.push!( emmigrants, propsel( meta_pop[k], tr.ne, vt ) )
-    else
-      s = StatsBase.sample(collect(1:subpop_size),tr.ne,replace=false,ordered=true) # random sample of indices
-      Base.push!( emmigrants, meta_pop[k][s] )   # Neutral
-    end
-  end
-  #println("emmigrants: ",emmigrants)
   new_emmigrants = Population[ Population() for j = 1:tr.num_subpops ]  # new_emmigrants[j] is the list of immigrants into subpop j
   for j = 1:tr.num_subpops
-    k = neighbor_list[j]
+    emmigrants = Vector{Int64}()  # emmigrants is the list of individuals that will emmigrate from subpop k
+    if emmigrant_select
+      #Base.push!( emmigrants, propsel( meta_pop[neighborlist[j]], tr.ne, vt ) )
+      emmigrants = propsel( meta_pop[neighborlist[j]], tr.ne, vt ) 
+    else
+      s = StatsBase.sample(collect(1:subpop_size),tr.ne,replace=false,ordered=true) # random sample of indices
+      #Base.push!( emmigrants, meta_pop[source_subpop_list[j]][s] )   # Neutral
+      emmigrants = meta_pop[source_subpop_list[j]][s]    # Neutral
+    end
+    #println("j: ",j,"  emmigrants: ",emmigrants)
+    k = source_subpop_list[j]
     if k != j   # only create new_emmigrants if the source is different from the destination
       # Create new variants for the emmigrants in the new subpop
-      for e in emmigrants[k]   # meta_pop[k] is the source, meta_pop[j] is the destination
+      for e in emmigrants   # meta_pop[k] is the source, meta_pop[j] is the destination
         i = id[1]
-        #println("e: ",e,"  i: ",i)
-        #println("new emmigrant i: ",i,"  subpop_index:",k,"  num_attributes: ",tr.num_attributes )
         vt[i] = deepcopy(vt[e])
+        fit = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
+        #println("new emmigrant e: ",e,"  i: ",i,"  fitness: ",fit,"  from subpop: ",k)
         # The following line is not needed if fitness is static
         # Not needed in the current program because fitness is calculated during mutation, and fitness shift does not happen between mutation and horiz transfer
         #vt[i].fitness = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
@@ -211,11 +215,12 @@ function add_emmigrants( meta_pop::PopList, tr::temporal_result_type, vt::Dict{I
         s = StatsBase.sample(collect(1:subpop_size),subpop_size-tr.ne,replace=false,ordered=true) # random sample of indices
         pop_after_deletion = meta_pop[j][s]
         #println("length(pop_after_deletion): ",length(pop_after_deletion))
-        #println("pop_after_deletion: ",pop_after_deletion)
+        #println("j: ",j,"  pop_after_deletion: ",pop_after_deletion)
       end
       meta_pop[j] = append!( pop_after_deletion, new_emmigrants[j] )
     end
   end
+  #println("metapop: ",meta_pop)
   return meta_pop
 end
 
