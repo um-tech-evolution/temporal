@@ -23,7 +23,7 @@ function ev_init()
   global move_time_interval = 5
   global horiz_select = false
   global uniform_start = true
-  global minFit = 0.46
+  global minFit = 0.25
   global topology="ring"   # must be one of "circular", "ring", "vonneumann", "moore", or "global" 
   global linear_fitness=true
   global linfit_slope = 1.0

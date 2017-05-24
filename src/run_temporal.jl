@@ -59,6 +59,10 @@ function print_temporal_result( tr::temporal_result_type )
   println("generational_lifetime: ", tr.generational_lifetime)
   println("move_update_lifetime: ", tr.move_update_lifetime)
   println("gen_limit_reached_count: ", tr.gen_limit_reached_count)
+  println("innovations_per_gen_trial: ", tr.innovations_per_gen_trial)
+  println("half_innovations_per_gen_trial: ", tr.half_innovations_per_gen_trial)
+  println("deleterious_mutations_per_gen_trial: ", tr.innovations_per_gen_trial)
+  println("half_deleterious_mutations_per_gen_trial: ", tr.half_innovations_per_gen_trial)
 end
 
 function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_result_type )
@@ -99,7 +103,11 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "stddev_fitness",
     "stddev_attributes",
     "mean_fraction_subpops_below_minFit",
-    "fraction_gens_with_all_subpops_below_minFit"
+    "fraction_gens_with_all_subpops_below_minFit",
+    "innovations_per_gen_trial",
+    "half_innovations_per_gen_trial",
+    "deleterious_mutations_per_gen_trial",
+    "half_deleterious_mutations_per_gen_trial"
     ]
   elseif tr.simtype == 1
     heads2 = [
@@ -133,6 +141,10 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
       sqrt(tr.attribute_variance),
       tr.mean_fraction_subpops_below_minFit,
       tr.fraction_gens_with_all_subpops_below_minFit,
+      tr.innovations_per_gen_trial,
+      tr.half_innovations_per_gen_trial,
+      tr.deleterious_mutations_per_gen_trial,
+      tr.half_deleterious_mutations_per_gen_trial
     ]
   elseif tr.simtype == 1
     line2 = Any[

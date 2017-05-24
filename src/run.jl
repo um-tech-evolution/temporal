@@ -12,7 +12,8 @@ function run_trials( simname::AbstractString )
   println("simtype: ",simtype)
   println("topology_list: ",topology_list)
   #println("linear fitness: ",linear_fitness)
-  #println("burn_in: ",burn_in)
+  int_burn_in = Int(round(burn_in*N))
+  println("int_burn_in: ",int_burn_in)
   horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
   tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutStddev_list[1], num_emmigrants_list[1], 
       move_range, move_time_interval_list[1], horiz_select, probHSelect_list[1], minFit, topology=topology_list[1],

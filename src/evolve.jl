@@ -4,22 +4,29 @@ export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, fmeans, means_v
 #include("types.jl")
 #include("propsel.jl")
 #include("fitness.jl") 
+#include("mutate_debug.jl")
 
 @doc """ function repeat_evolve( )
 Runs evolve()  tr.num_subpops times, and averages the results.
 """
 function repeat_evolve( tr::temporal_result_type )
-  println("rep_evolve: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
+  println("rep_evolve: num_subpops: ",tr.num_subpops,"  ngens: ",tr.ngens,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
         "  topology: ",tr.topology,"  num_attributes: ",tr.num_attributes)
   if tr.num_trials == 1
     return evolve( tr )
   end
+  int_burn_in = Int(round(tr.burn_in*tr.N))
+  #println("int_burn_in: ",int_burn_in)
   tr_list = temporal_result_type[]
   sum_mean = 0.0
   sum_vars = 0.0
   sum_attr_vars = 0.0
   sum_mean_fraction_subpops_below_minFit = 0
   sum_fract_gens_with_all_subpops_below_minFit = 0
+  sum_innovations_per_gen_trial = 0
+  sum_half_innovations_per_gen_trial = 0
+  sum_deleterious_mutations_per_gen_trial = 0
+  sum_half_deleterious_mutations_per_gen_trial = 0
 
   for t = 1:tr.num_trials
     tr = evolve( tr ) 
@@ -30,6 +37,10 @@ function repeat_evolve( tr::temporal_result_type )
     sum_mean += tr.fitness_mean
     sum_vars += tr.fitness_variance
     sum_attr_vars += tr.attribute_variance
+    sum_innovations_per_gen_trial += tr.innovations_per_gen_trial
+    sum_half_innovations_per_gen_trial += tr.half_innovations_per_gen_trial
+    sum_deleterious_mutations_per_gen_trial += tr.deleterious_mutations_per_gen_trial
+    sum_half_deleterious_mutations_per_gen_trial += tr.half_deleterious_mutations_per_gen_trial
   end
   tr.mean_fraction_subpops_below_minFit = sum_mean_fraction_subpops_below_minFit/tr.num_trials
   tr.fraction_gens_with_all_subpops_below_minFit = sum_fract_gens_with_all_subpops_below_minFit/tr.num_trials
@@ -38,6 +49,12 @@ function repeat_evolve( tr::temporal_result_type )
   #println("  tr.fitness_variance: ",tr.fitness_variance)
   #println("  tr.num_trials: ",tr.num_trials)
   tr.attribute_variance = sum_attr_vars/tr.num_trials
+  tr.innovations_per_gen_trial = sum_innovations_per_gen_trial/tr.num_trials
+  tr.half_innovations_per_gen_trial = sum_half_innovations_per_gen_trial/tr.num_trials
+  tr.deleterious_mutations_per_gen_trial = sum_deleterious_mutations_per_gen_trial/tr.num_trials
+  tr.half_deleterious_mutations_per_gen_trial = sum_half_deleterious_mutations_per_gen_trial/tr.num_trials
+  println( "innov_counts.pos:",tr.innovations_per_gen_trial, "  innov_counts.half_pos:",tr.half_innovations_per_gen_trial, 
+        "  innov_counts.neg:",tr.deleterious_mutations_per_gen_trial, "  innov_counts.half_neg:",tr.half_deleterious_mutations_per_gen_trial)
   #return tr, tr_list
   return tr
 end
@@ -49,6 +66,7 @@ See types.jl for the definition of temporal_result_type, and for the definition 
 function evolve( tr::temporal_result_type )
   #println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,"  topology: ",tr.topology)
   int_burn_in = Int(round(tr.burn_in*tr.N))
+  #println("int_burn_in: ",int_burn_in)
   id = [0]
   att_vars = zeros(tr.num_subpops)
   cumm_means = zeros(tr.num_subpops)
@@ -63,6 +81,7 @@ function evolve( tr::temporal_result_type )
     println("N:",tr.N,"  subpop_size: ",subpop_size,"  tr.num_subpops: ",tr.num_subpops,"  prod: ",subpop_size*tr.num_subpops)
     error("N must equal subpop_size*tr.num_subpops")
   end
+  trial_innov_counts = trial_innovation_counts(0.0,0.0,0.0,0.0)
   vt = Dict{Int64,variant_type}()
   meta_pop = init_meta_pop( tr, vt, ideal, id )
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
@@ -71,11 +90,12 @@ function evolve( tr::temporal_result_type )
     if g > int_burn_in && tr.move_time_interval > 0 && g % tr.move_time_interval == 0
       move_optima( ideal, tr.move_range )
       #println("optimum moved")
-      #mmeans, vvars = means_vars( meta_pop, vt )
+      mmeans, vvars = means_vars( meta_pop, vt )
       #println("g: ",g,"  metapop: ",meta_pop)
       #println("g: ",g,"  mmeans: ",mmeans,"  ")
     end
-    mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
+    gen_innov_counts = mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
+    #println("gen_innov_counts: ",gen_innov_counts)
     
     for  j = 1:tr.num_subpops
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
@@ -99,7 +119,13 @@ function evolve( tr::temporal_result_type )
       end
       =#
       ##println("g: ",g,"  metapop: ",meta_pop)
-      ##println("g: ",g,"  mmeans: ",mmeans,"  ")
+      trial_innov_counts.pos += gen_innov_counts.pos
+      trial_innov_counts.half_pos += gen_innov_counts.half_pos
+      trial_innov_counts.neg += gen_innov_counts.neg
+      trial_innov_counts.half_neg += gen_innov_counts.half_neg
+      #print("g: ",g,"  mmeans: ",mmeans,"  ")
+      #println("gen_innov_counts.pos:",gen_innov_counts.pos,"  gen_innov_counts.half_pos:",gen_innov_counts.half_pos,"  gen_innov_counts.neg:",gen_innov_counts.neg,"  gen_innov_counts.half_neg:",gen_innov_counts.half_neg)
+      #println( "  tr.half_deleterious_mutations_per_gen_trial: ",tr.half_deleterious_mutations_per_gen_trial)
       #print("   fstdev: ",sqrt(vvars))
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
@@ -121,6 +147,12 @@ function evolve( tr::temporal_result_type )
   #println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
   #println("cumm_count_subpops_below_minFit: ",cumm_count_subpops_below_minFit)
   #println("cumm_count_gens_with_subpop_below_minFit: ",cumm_count_gens_with_all_subpops_below_minFit)
+  tr.innovations_per_gen_trial = trial_innov_counts.pos/tr.ngens
+  tr.half_innovations_per_gen_trial = trial_innov_counts.half_pos/tr.ngens
+  tr.deleterious_mutations_per_gen_trial = trial_innov_counts.neg/tr.ngens
+  tr.half_deleterious_mutations_per_gen_trial = trial_innov_counts.half_neg/tr.ngens
+  #println("  innov_counts.pos:",tr.innovations_per_gen_trial, "  innov_counts.half_pos:",tr.half_innovations_per_gen_trial, 
+  #      "  innov_counts.neg:",tr.deleterious_mutations_per_gen_trial, "  innov_counts.half_neg:",tr.half_deleterious_mutations_per_gen_trial)
   tr.fitness_variance = mean(cumm_vars/tr.ngens)
   tr.attribute_variance = mean(cumm_attr_vars/tr.ngens)
   return tr
@@ -144,6 +176,54 @@ function init_meta_pop( tr::temporal_result_type, vt::Dict{Int64,variant_type}, 
   return meta_pop
 end
 
+@doc """ function mutate_meta_pop!( )
+  Mutates each individual of each subpop of meta_pop.  
+  Mutation is done by applying the function mutate_variant().
+  The mutated individual has a new id, and thus is a different individual.
+  For each individual, determines whether the new fitness corresponds to a selection coefficient is in the nearly neutral range.
+  The selection coefficient of an individual i of a subpop is defined as  s(i) = fitness(i)/mean_fitness  where mean_fitness is the mean over the subpop.
+  Individual i is advantageous if  s(i) > 1 + 1/subpop_size and is disadvantageous if s(i) < 1 - 1/subpopsize.
+  We think of advantageous individuals as innovations.
+  We also define individual i to be half-advantageous if  s(i) > 1+0.5/subpop_size and half-disadvantagous if s(i) < 1-0.5/subpop_size.
+"""
+function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )
+  num_subpops = length(meta_pop)
+  subpop_size = length(meta_pop[1])
+  #println("num_subpops: ",num_subpops,"  subpop_size: ",subpop_size)
+  #v_lists = [ [ vt[meta_pop[j][i]] for i = 1:subpop_size ] for j = 1:tr.num_subpops]
+  v_lists = [ [ vt[meta_pop[j][i]] for i = 1:subpop_size ] for j = 1:num_subpops ]
+  gen_innov_counts = generational_innovation_counts(0,0,0,0)
+  for j = 1:num_subpops
+    #v_list = [ vt[meta_pop[j][i]] for i = 1:subpop_size ]
+    fitnesses = zeros(Float64,subpop_size)
+    for i = 1:subpop_size
+      #println("B j: ",j,"  i: ",i," meta_pop[j][i]: ",meta_pop[j][i],"  v_lists[j][i]: ",v_lists[j][i])
+      meta_pop[j][i] = id[1]
+      id[1] += 1
+      vt[meta_pop[j][i]] = mutate_variant( v_lists[j][i], tr.mutStddev )
+      fitnesses[i] = fitness( vt[meta_pop[j][i]].attributes, ideal, minFit=tr.minFit, 
+          linear_fitness=tr.linear_fitness, linfit_slope=tr.linfit_slope )
+      vt[meta_pop[j][i]].fitness = fitnesses[i]
+      #println("A j: ",j,"  i: ",i," meta_pop[j][i]: ",meta_pop[j][i],"  vt[meta_pop[j][i]]: ",vt[meta_pop[j][i]])
+    end
+    mmean = mean(fitnesses)
+    num_positive_select = count(x->x>mmean+mmean/subpop_size,fitnesses)
+    num_half_positive_select = count(x->x>mmean+0.5*mmean/subpop_size,fitnesses)
+    num_negative_select = count(x->x<mmean-1.0*mmean/subpop_size,fitnesses)
+    num_half_negative_select = count(x->x<mmean-0.5*mmean/subpop_size,fitnesses)
+    #num_half_negative_select = length(fitnesses)
+    #println( "num_pos: ",num_positive_select, "  num_half_pos: ",num_half_positive_select, "  num_neg: ",num_negative_select, "  num_half_neg: ",num_half_negative_select)
+    #println( "  num_half_neg: ",num_half_negative_select)
+    gen_innov_counts.pos += num_positive_select
+    gen_innov_counts.half_pos += num_half_positive_select
+    gen_innov_counts.neg += num_negative_select
+    gen_innov_counts.half_neg += num_half_negative_select
+  end
+  #println( "gen_innov_counts.pos: ",gen_innov_counts.pos, "  gen_innov_counts.half_pos: ",gen_innov_counts.half_pos, "  gen_innov_counts.neg: ",gen_innov_counts.neg, "  gen_innov_counts.half_neg: ",gen_innov_counts.half_neg)
+  return gen_innov_counts
+end
+
+#=
 function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
@@ -163,7 +243,7 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
     end
   end
 end
-
+=#
 
 function mutate_variant( v::variant_type, mutStddev::Float64 )
   new_v = deepcopy(v)
@@ -171,6 +251,10 @@ function mutate_variant( v::variant_type, mutStddev::Float64 )
   new_v
 end
 
+@doc """ mutate_attributes( )
+  Add a normally distributed (with standard deviation mutStddev) random value to each attribute.
+  If the result is outside of the unit interval [0,1], wrap around.
+"""
 function mutate_attributes( attributes::Vector{Float64}, mutStddev::Float64 )
   #println("mutate attributes  mutStddev: ",mutStddev)
   for i = 1:length(attributes)

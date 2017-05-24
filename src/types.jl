@@ -20,6 +20,20 @@ type subpop_properties
   current_subpop_alive::Vector{Bool}
 end
 
+type generational_innovation_counts
+  pos::Int64
+  half_pos::Int64
+  neg::Int64
+  half_neg::Int64
+end
+
+type trial_innovation_counts
+  pos::Float64
+  half_pos::Float64
+  neg::Float64
+  half_neg::Float64
+end
+
 type temporal_result_type
   simtype::Int64   # 1:  evolve_until_dead,   2: evolve with fixed generations
   num_trials::Int64   # number of repeated runs with the same parameter values
@@ -48,6 +62,10 @@ type temporal_result_type
   generational_lifetime::Float64
   move_update_lifetime::Float64
   gen_limit_reached_count::Int64
+  innovations_per_gen_trial::Float64
+  half_innovations_per_gen_trial::Float64
+  deleterious_mutations_per_gen_trial::Float64
+  half_deleterious_mutations_per_gen_trial::Float64
 end
 
 function temporal_result( simtype::Int64, num_trials::Int64, N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutStddev::Float64, 
@@ -55,5 +73,5 @@ function temporal_result( simtype::Int64, num_trials::Int64, N::Int64, num_attri
     uniform_start::Bool=false, linear_fitness::Bool=false, linfit_slope::Float64=1.0, burn_in::Float64=1.0 )
   ideal_init = 0.5
   return temporal_result_type( simtype, num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, probHSelect,
-      mutStddev, ideal_init, move_range, move_time_interval, minFit, linear_fitness, linfit_slope, topology, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0 )
+      mutStddev, ideal_init, move_range, move_time_interval, minFit, linear_fitness, linfit_slope, topology, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0.0 )
 end
