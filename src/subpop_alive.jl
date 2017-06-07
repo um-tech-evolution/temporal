@@ -104,6 +104,9 @@ function evolve_until_dead( tr::temporal_result_type )
   return tr
 end
 
+@doc """ function subpop_properties_init()
+   Initializes 3 lists of Bools that describe the 'alive' properties of the subpops
+"""
 function subpop_properties_init( num_subpops::Int64 )
   generational_subpop_alive = fill(true,num_subpops)
   prev_subpop_alive = fill(true,num_subpops)

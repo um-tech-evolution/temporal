@@ -28,8 +28,10 @@ function ev_init()
   global linear_fitness=true
   global linfit_slope = 1.0
   global burn_in = 0.0
+  global horiz_mutate=false
   global tr = TemporalEvolution.temporal_result(simtype, num_trials, N, num_attributes, num_subpops, ngens, mutStddev, num_emmigrants, 
-    move_range, move_time_interval, horiz_select, minFit, topology=topology, uniform_start=uniform_start, linear_fitness=linear_fitness, linfit_slope=linfit_slope, burn_in=burn_in )
+    move_range, move_time_interval, horiz_select, minFit, horiz_mutate=horiz_mutate, topology=topology, uniform_start=uniform_start, 
+    linear_fitness=linear_fitness, linfit_slope=linfit_slope, burn_in=burn_in )
   global ideal = fill( tr.ideal_init, tr.num_attributes )
   global vt = Dict{Int64,variant_type}()
   tr

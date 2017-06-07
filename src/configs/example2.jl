@@ -24,6 +24,7 @@ const horiz_select=false
 #const horiz_select_list=[false]
 #const probHSelect=1.0
 const probHSelect_list=[1.0]
+const horiz_mutate_list=[false,true]
 const uniform_start=true
 const minFit = 0.25
 const linear_fitness=true

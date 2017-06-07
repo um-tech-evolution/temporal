@@ -53,8 +53,8 @@ function repeat_evolve( tr::temporal_result_type )
   tr.half_innovations_per_gen_trial = sum_half_innovations_per_gen_trial/tr.num_trials
   tr.deleterious_mutations_per_gen_trial = sum_deleterious_mutations_per_gen_trial/tr.num_trials
   tr.half_deleterious_mutations_per_gen_trial = sum_half_deleterious_mutations_per_gen_trial/tr.num_trials
-  println( "innov_counts.pos:",tr.innovations_per_gen_trial, "  innov_counts.half_pos:",tr.half_innovations_per_gen_trial, 
-        "  innov_counts.neg:",tr.deleterious_mutations_per_gen_trial, "  innov_counts.half_neg:",tr.half_deleterious_mutations_per_gen_trial)
+  #println( "innov_counts.pos:",tr.innovations_per_gen_trial, "  innov_counts.half_pos:",tr.half_innovations_per_gen_trial, 
+  #      "  innov_counts.neg:",tr.deleterious_mutations_per_gen_trial, "  innov_counts.half_neg:",tr.half_deleterious_mutations_per_gen_trial)
   #return tr, tr_list
   return tr
 end
@@ -176,6 +176,39 @@ function init_meta_pop( tr::temporal_result_type, vt::Dict{Int64,variant_type}, 
   return meta_pop
 end
 
+function mutate_subpop!( subpop::Population, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, 
+    id::Vector{Int64}, tr::temporal_result_type, innov_counts::generational_innovation_counts  )
+  subpop_size = length(subpop)
+  v_list = [vt[subpop[i]] for i = 1:subpop_size ]
+  #innov_counts = generational_innovation_counts(0,0,0,0)
+  fitnesses = zeros(Float64,subpop_size)
+  for i = 1:subpop_size
+    #=
+    if id[1] == 480
+      println("B i: ",i," subpop[i]: ",subpop[i],"  v_list[i]: ",v_list[i])
+    end
+    =#
+    subpop[i] = id[1]
+    id[1] += 1
+    vt[subpop[i]] = mutate_variant( v_list[i], tr.mutStddev )
+    fitnesses[i] = fitness( vt[subpop[i]].attributes, ideal, minFit=tr.minFit,
+        linear_fitness=tr.linear_fitness, linfit_slope=tr.linfit_slope )
+    vt[subpop[i]].fitness = fitnesses[i]
+  end
+  mmean = mean(fitnesses)
+  num_positive_select = count(x->x>mmean+mmean/subpop_size,fitnesses)
+  num_half_positive_select = count(x->x>mmean+0.5*mmean/subpop_size,fitnesses)
+  num_negative_select = count(x->x<mmean-1.0*mmean/subpop_size,fitnesses)
+  num_half_negative_select = count(x->x<mmean-0.5*mmean/subpop_size,fitnesses)
+  #num_half_negative_select = length(fitnesses)
+  #println( "num_pos: ",num_positive_select, "  num_half_pos: ",num_half_positive_select, "  num_neg: ",num_negative_select, "  num_half_neg: ",num_half_negative_select)
+  #println( "  num_half_neg: ",num_half_negative_select)
+  innov_counts.pos += num_positive_select
+  innov_counts.half_pos += num_half_positive_select
+  innov_counts.neg += num_negative_select
+  innov_counts.half_neg += num_half_negative_select
+end
+
 @doc """ function mutate_meta_pop!( )
   Mutates each individual of each subpop of meta_pop.  
   Mutation is done by applying the function mutate_variant().
@@ -186,6 +219,19 @@ end
   We think of advantageous individuals as innovations.
   We also define individual i to be half-advantageous if  s(i) > 1+0.5/subpop_size and half-disadvantagous if s(i) < 1-0.5/subpop_size.
 """
+function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )
+  num_subpops = length(meta_pop)
+  subpop_size = length(meta_pop[1])
+  #println("num_subpops: ",num_subpops,"  subpop_size: ",subpop_size)
+  #v_lists = [ [ vt[meta_pop[j][i]] for i = 1:subpop_size ] for j = 1:tr.num_subpops]
+  v_lists = [ [ vt[meta_pop[j][i]] for i = 1:subpop_size ] for j = 1:num_subpops ]
+  gen_innov_counts = generational_innovation_counts(0,0,0,0)
+  for j = 1:num_subpops
+    mutate_subpop!(meta_pop[],vt,ideal,id,tr,gen_innov_counts)
+  end
+  return gen_innov_counts
+end
+#=
 function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
@@ -222,6 +268,7 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
   #println( "gen_innov_counts.pos: ",gen_innov_counts.pos, "  gen_innov_counts.half_pos: ",gen_innov_counts.half_pos, "  gen_innov_counts.neg: ",gen_innov_counts.neg, "  gen_innov_counts.half_neg: ",gen_innov_counts.half_neg)
   return gen_innov_counts
 end
+=#
 
 #=
 function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )

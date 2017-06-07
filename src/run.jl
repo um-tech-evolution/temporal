@@ -9,14 +9,24 @@ function run_trials( simname::AbstractString )
     println("isdef topology !isdef topology_list")
     global topology_list = [topology]
   end
+  if !isdefined(:horiz_mutate)
+    global horiz_mutate
+    horiz_mutate = false
+  end
+  if !isdefined(:horiz_mutate_list)
+    global horiz_mutate_list
+    horiz_mutate_list = [false]
+  end
   println("simtype: ",simtype)
   println("topology_list: ",topology_list)
   #println("linear fitness: ",linear_fitness)
   int_burn_in = Int(round(burn_in*N))
   println("int_burn_in: ",int_burn_in)
+  println("horiz_mutate: ",horiz_mutate)
+  #horiz_mutate = false
   horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
   tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutStddev_list[1], num_emmigrants_list[1], 
-      move_range, move_time_interval_list[1], horiz_select, probHSelect_list[1], minFit, topology=topology_list[1],
+      move_range, move_time_interval_list[1], horiz_select, probHSelect_list[1], minFit, topology=topology_list[1], horiz_mutate=horiz_mutate_list[1],
       uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
   tr_list_run = TemporalEvolution.temporal_result_type[]
   trial=1
@@ -25,12 +35,14 @@ function run_trials( simname::AbstractString )
       for num_subpops in num_subpops_list
         for num_emmigrants in num_emmigrants_list
           for probHSelect in probHSelect_list
-            for topology in topology_list
-              for num_attributes in num_attributes_list
-                tr = temporal_result( simtype, T, N, num_attributes, num_subpops, ngens, mutStddev, num_emmigrants, move_range, move_time_interval, 
-                  horiz_select, probHSelect, minFit, topology=topology,
-                  uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
-                Base.push!(tr_list_run, tr )
+            for horiz_mutate in horiz_mutate_list
+              for topology in topology_list
+                for num_attributes in num_attributes_list
+                  tr = temporal_result( simtype, T, N, num_attributes, num_subpops, ngens, mutStddev, num_emmigrants, move_range, move_time_interval, 
+                      horiz_select, probHSelect, minFit, topology=topology, horiz_mutate=horiz_mutate,
+                    uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
+                  Base.push!(tr_list_run, tr )
+                end
               end
             end
             #println("  length tr_list_run: ",length(tr_list_run))
@@ -84,8 +96,12 @@ if length(ARGS) == 0
   simname = "configs/example2"
 else
   simname = ARGS[1]
+  if length(ARGS) >= 2  # second command-line argument is random number seed
+    seed = parse(Int,ARGS[2])
+    println("seed: ",seed)
+    srand(seed)
+  end
 end
-#srand(1)
 include("$(simname).jl")
 println("simname: ",simname)
 #println("simtype: ",simtype)

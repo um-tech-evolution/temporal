@@ -49,6 +49,7 @@ function print_temporal_result( tr::temporal_result_type )
   println("move_time_interval: ", tr.move_time_interval)
   println("linear_fitness: ",tr.linear_fitness)
   println("linfit_slope: ",tr.linfit_slope)
+  println("horiz_mutate: ",tr.horiz_mutate)
   println("topology: ",tr.topology)
   println("minFit: ",tr.minFit)
   println("mean_fraction_subpops_below_cutoff: ", tr.mean_fraction_subpops_below_minFit)
@@ -93,6 +94,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "move_range",
     "move_time_interval",
     "horiz_select",
+    "horiz_mutate",
     "probHSelect",
     "topology",
     "linear_fitness_slope"
@@ -130,6 +132,7 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
       tr.move_range,
       tr.move_time_interval,
       tr.horiz_select,
+      tr.horiz_mutate,
       tr.probHSelect,
       tr.topology,
       tr.linfit_slope

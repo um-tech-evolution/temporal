@@ -1,3 +1,4 @@
+using Base.Test
 export horiz_transfer, horiz_transfer_circular!, new_emmigrants_funct, add_emmigrants, horiz_transfer_by_fitness!
 
 function horiz_transfer( meta_pop::PopList, tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
@@ -180,12 +181,15 @@ function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::
       # Create new variants for the emmigrants in the new subpop
       for e in emmigrants   # meta_pop[k] is the source, meta_pop[j] is the destination
         i = id[1]
-        vt[i] = deepcopy(vt[e])
+        #println("e: ",i,"  vt[e]: ",vt[e])
+        if tr.horiz_mutate
+          vt[i] = mutate_variant( vt[e], tr.mutStddev )   # mutate_variant includes deepcopy
+        else
+          vt[i] = deepcopy(vt[e])
+        end
         fit = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
         #println("new emmigrant e: ",e,"  i: ",i,"  fitness: ",fit,"  from subpop: ",k)
-        # The following line is not needed if fitness is static
-        # Not needed in the current program because fitness is calculated during mutation, and fitness shift does not happen between mutation and horiz transfer
-        #vt[i].fitness = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
+        vt[i].fitness = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
         #println("vt[",e,"]: ",vt[e])
         #println("vt[",i,"]: ",vt[i])
         Base.push!( new_emmigrants[j], i )
