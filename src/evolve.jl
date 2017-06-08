@@ -102,8 +102,10 @@ function evolve( tr::temporal_result_type )
     end
     
     mmeans = fmeans( meta_pop, vt )
+    #println("g: ",g,"  mmeans: ",mmeans,"  ")
     horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
     mmeans, vvars = means_vars( meta_pop, vt )
+    #println("g: ",g,"  mmeans: ",mmeans,"  ")
     #println("g: ",g,"  mmeans: ",mmeans)
     #println("vvars: ",vvars)
     #println("vt: ",vt)
@@ -227,7 +229,7 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
   v_lists = [ [ vt[meta_pop[j][i]] for i = 1:subpop_size ] for j = 1:num_subpops ]
   gen_innov_counts = generational_innovation_counts(0,0,0,0)
   for j = 1:num_subpops
-    mutate_subpop!(meta_pop[],vt,ideal,id,tr,gen_innov_counts)
+    mutate_subpop!(meta_pop[j],vt,ideal,id,tr,gen_innov_counts)
   end
   return gen_innov_counts
 end
