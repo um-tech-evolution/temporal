@@ -102,7 +102,7 @@ function evolve( tr::temporal_result_type )
     end
     
     mmeans = fmeans( meta_pop, vt )
-    #println("g: ",g,"  mmeans: ",mmeans,"  ")
+    println("g: ",g,"  mmeans: ",mmeans,"  ")
     horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
     mmeans, vvars = means_vars( meta_pop, vt )
     #println("g: ",g,"  mmeans: ",mmeans,"  ")

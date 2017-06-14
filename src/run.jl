@@ -9,6 +9,14 @@ function run_trials( simname::AbstractString )
     println("isdef topology !isdef topology_list")
     global topology_list = [topology]
   end
+  if !isdefined(:horiz_select)
+    global horiz_select
+    horiz_select = false
+  end
+  if !isdefined(:horiz_select_list)
+    global horiz_select_list
+    horiz_select_list = [false]
+  end
   if !isdefined(:horiz_mutate)
     global horiz_mutate
     horiz_mutate = false
@@ -17,12 +25,19 @@ function run_trials( simname::AbstractString )
     global horiz_mutate_list
     horiz_mutate_list = [false]
   end
+  if !isdefined(:probHSelect)
+    global probHSelect
+    probHSelect = 1.0
+  end
+  if !isdefined(:probHSelect_list)
+    global probHSelect_list
+    probHSelect_list = [1.0]
+  end
   println("simtype: ",simtype)
   println("topology_list: ",topology_list)
   #println("linear fitness: ",linear_fitness)
   int_burn_in = Int(round(burn_in*N))
   println("int_burn_in: ",int_burn_in)
-  println("horiz_mutate: ",horiz_mutate)
   #horiz_mutate = false
   horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
   tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutStddev_list[1], num_emmigrants_list[1], 
