@@ -4,11 +4,17 @@
 function run_trials( simname::AbstractString )
   stream = open("$(simname).csv","w")
   println("stream: ",stream)
-  fd = fidelity( T, N_list[1], q, s, ngens, init_high_freq, psel_first )
+  fd = fidelity( T, N_list[1], q_list[1], s_list[1], ngens, init_high_freq, psel_first, deterministic_mutation_list[1] )
   fd_list_run = fidelity_type[]
-  for N in N_list
-    fd = fidelity( T, N, q, s, ngens, init_high_freq, psel_first )
-    Base.push!( fd_list_run, fd )
+  for s in s_list
+    for q in q_list
+      for N in N_list
+        for deterministic_mutation in deterministic_mutation_list
+          fd = fidelity( T, N, q, s, ngens, init_high_freq, psel_first, deterministic_mutation )
+          Base.push!( fd_list_run, fd )
+        end
+      end
+    end
   end
   fd_list_result = pmap( count_high_low_fixed, fd_list_run )
   writeheader( STDOUT, fd, N_list )

@@ -1,5 +1,5 @@
 # bash script to run config examples
-# These runs produce files  src/configs/example1.csv and src/configs/example2.csv.
+# These runs produce files  src/configs/example?.csv  where "?" is 1 through 5
 cd ../src
 julia -p 2 -L TemporalEvolution.jl run.jl configs/example1
 julia -p 2 -L TemporalEvolution.jl run.jl configs/example2

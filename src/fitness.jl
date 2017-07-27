@@ -19,17 +19,13 @@ end
 @doc """ fitness()
 A strongly-peaked fitness function.
 """
-function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; use_atan::Bool=false,
+function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; 
     minFit::Float64=0.0, linear_fitness::Bool=false, linfit_slope::Float64=1.0 )
   dis = euclidean_distance( attributes, ideal )
   if linear_fitness
     fit = max( minFit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
     #println("l fit: ",fit)
     return fit
-  end
-  if use_atan
-    fit = max(0.0, 1.0 - 2.0*atan(10.0*dis)/3.0)
-    #println("a fit: ",fit)
   else
     inverse_scale = 20.0
     gpdf = Distributions.Gamma(1.0,1.0/inverse_scale)
