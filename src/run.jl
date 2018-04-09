@@ -35,14 +35,13 @@ function run_trials( simname::AbstractString )
   end
   println("simtype: ",simtype)
   println("topology_list: ",topology_list)
-  #println("linear fitness: ",linear_fitness)
   int_burn_in = Int(round(burn_in*N))
   println("int_burn_in: ",int_burn_in)
   #horiz_mutate = false
   horiz_param_check( topology_list, num_subpops_list, num_emmigrants_list )
   tr = temporal_result( simtype, T, N, num_attributes_list[1], num_subpops_list[1], ngens, mutStddev_list[1], num_emmigrants_list[1], 
       move_range, move_time_interval_list[1], horiz_select, probHSelect_list[1], minFit, topology=topology_list[1], horiz_mutate=horiz_mutate_list[1],
-      uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
+      uniform_start=uniform_start, burn_in=burn_in, linfit_slope=linfit_slope )
   tr_list_run = TemporalEvolution.temporal_result_type[]
   trial=1
   for mutStddev in mutStddev_list
@@ -55,7 +54,7 @@ function run_trials( simname::AbstractString )
                 for num_attributes in num_attributes_list
                   tr = temporal_result( simtype, T, N, num_attributes, num_subpops, ngens, mutStddev, num_emmigrants, move_range, move_time_interval, 
                       horiz_select, probHSelect, minFit, topology=topology, horiz_mutate=horiz_mutate,
-                    uniform_start=uniform_start, linear_fitness=linear_fitness, burn_in=burn_in, linfit_slope=linfit_slope )
+                    uniform_start=uniform_start, burn_in=burn_in, linfit_slope=linfit_slope )
                   Base.push!(tr_list_run, tr )
                 end
               end
@@ -67,7 +66,8 @@ function run_trials( simname::AbstractString )
     end
   end
   println("===================================")
-  tr_list_result = pmap(run_evolution, tr_list_run )
+  #tr_list_result = pmap(run_evolution, tr_list_run )
+  tr_list_result = map(run_evolution, tr_list_run )  # TODO change back to pmap
   #println("length tr_list_result: ",length(tr_list_result))
   #println("tr_list_result[1]: ",tr_list_result[1])
   #println("tr_list_result[1][1]: ",tr_list_result[1][1])
@@ -120,4 +120,9 @@ end
 include("$(simname).jl")
 println("simname: ",simname)
 #println("simtype: ",simtype)
+#=
+if simtype != 2
+  error("simtype for temporal must be 2")
+end
+=#
 run_trials( simname )

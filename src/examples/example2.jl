@@ -6,7 +6,7 @@ or
 >  julia -p 4 -L TemporalEvolution.jl run.jl configs/example1
 export simtype
 =#
-@everywhere simtype = 2    
+@everywhere simtype = 2    # run  repeat_evolve instead of repeat_evolve_until_dead
 const T = 1  # number of trials
 @everywhere const N = 128        # Meta-population size
 const num_subpops_list = [1,4]                     # Number of subpopulations
@@ -27,7 +27,6 @@ const probHSelect_list=[1.0]
 const horiz_mutate_list=[false,true]
 const uniform_start=true
 const minFit = 0.25
-const linear_fitness=true
 const linfit_slope=1.0
 #const linfit_slope_list=[1.0]
 const topology_list= ["ring"]

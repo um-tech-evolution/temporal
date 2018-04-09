@@ -187,9 +187,9 @@ function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::
         else
           vt[i] = deepcopy(vt[e])
         end
-        fit = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
+        fit = fitness( vt[i].attributes, ideal, minFit=tr.minFit )  
         #println("new emmigrant e: ",e,"  i: ",i,"  fitness: ",fit,"  from subpop: ",k)
-        vt[i].fitness = fitness( vt[i].attributes, ideal, minFit=tr.minFit, linear_fitness=tr.linear_fitness )  
+        vt[i].fitness = fitness( vt[i].attributes, ideal, minFit=tr.minFit  )  
         #println("vt[",e,"]: ",vt[e])
         #println("vt[",i,"]: ",vt[i])
         Base.push!( new_emmigrants[j], i )

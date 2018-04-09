@@ -1,7 +1,7 @@
 export print_fidelity, writeheader, writerow, horiz_param_check
 #=
 Recommended command line to run:
->  julia -L TemporalEvolution.jl run_fidelity.jl examples/example1
+>  julia -L Fidelity.jl run.jl examples/example1
 =#
 export  writeheader, writerow
 #include("types.jl")

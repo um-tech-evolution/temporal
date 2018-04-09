@@ -1,6 +1,6 @@
 export fitness
-@doc """ dis()
-Wraparoud Euclidean distance 
+@doc """ euclidean_distance()
+Euclidean distance from attributes to ideal
 """
 function euclidean_distance( attributes::Vector{Float64}, ideal::Vector{Float64} )
   if length(attributes) != length(ideal)
@@ -16,21 +16,42 @@ function euclidean_distance( attributes::Vector{Float64}, ideal::Vector{Float64}
   return sqrt(sum)
 end
 
+@doc """ sum_distance()
+  Sum of absolute differences between ideal components and attribute components,
+    except that if absolute difference is less than minFit, it is set to zero.
+  count is the number of distance components that are greater than zero.
+"""
+function sum_distance( attributes::Vector{Float64}, ideal::Vector{Float64}, minFit::Float64 )
+  if length(attributes) != length(ideal)
+    error("length(attributes) must equal length(ideal) in fitness")
+  end
+  sum = 0.0
+  count = 0
+  for k = 1:length(attributes)
+    a = abs(attributes[k]-ideal[k])
+    a = a > 0.5 ? 1-a : a
+    dis = 0.5-a
+    if dis >= minFit
+      # Don't modify dis
+      count += 1
+    else
+      dis = 0.0
+    end
+    #println("k: ",k,"  attr: ",attributes[k],"  ideal: ",ideal[k],"  a: ",a,"  dis: ",dis)
+    sum += dis
+  end
+  #println("fitness: attributes: ",attributes,"  ideal: ",ideal," fit: ",sum,"  count: ",count)
+  #return sum, count
+  return sum 
+end
+
 @doc """ fitness()
-A strongly-peaked fitness function.
+
 """
 function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; 
-    minFit::Float64=0.0, linear_fitness::Bool=false, linfit_slope::Float64=1.0 )
+      minFit::Float64=0.0, linfit_slope::Float64=1.0 )
   dis = euclidean_distance( attributes, ideal )
-  if linear_fitness
-    fit = max( minFit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
-    #println("l fit: ",fit)
-    return fit
-  else
-    inverse_scale = 20.0
-    gpdf = Distributions.Gamma(1.0,1.0/inverse_scale)
-    fit = pdf(gpdf,dis)/inverse_scale
-    #println("g fit: ",fit)
-  end
+  fit = max( minFit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
+  #println("l fit: ",max( fit, minFit ))
   return max( fit, minFit )
 end

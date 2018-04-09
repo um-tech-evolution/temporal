@@ -2,8 +2,8 @@ export variant_type, fitness_location_type, Population, PopList, temporal_result
     fitness_location_type, subpop_properties, generational_innovation_counts
 using Distributions
 using StatsBase
-typealias Population Array{Int64,1}
-typealias PopList Array{Population,1}
+const Population =  Array{Int64,1}
+const PopList = Array{Population,1}
 
 type variant_type
   fitness::Float64    # The fitness of this variant
@@ -51,7 +51,6 @@ type temporal_result_type
   move_range::Float64     # on optima change, a uniform random number in the interval [-move_range,move_range] is added to each ideal
   move_time_interval::Int64  # The optima are moved every move_time_interval generations
   minFit::Float64      # Lower bound on fitness
-  linear_fitness::Bool      # if true, fitness is 0.5 - Euclidean distance
   linfit_slope::Float64    # the slope of the peak for linear fitness.  Larger means a smaller, steeper, peak
   horiz_mutate::Bool      # if true, do mutation (copy error) is done as part of horizontal transmission
   topology::String      # Neighborhood topology for horizontal_transfer_by_fitness: must be "circular", "ring", "vonneumann", "moore", "random", or "none"
@@ -72,9 +71,9 @@ end
 function temporal_result( simtype::Int64, num_trials::Int64, N::Int64, num_attributes::Int64, num_subpops::Int64, ngens::Int64, mutStddev::Float64, 
     num_emmigrants::Int64, move_range::Float64, move_time_interval::Int64, horiz_select::Bool=false, probHSelect::Float64=1.0, minFit::Float64=0.0; 
     horiz_mutate::Bool=false, topology::String="circular", 
-    uniform_start::Bool=false, linear_fitness::Bool=false, linfit_slope::Float64=1.0, burn_in::Float64=1.0 )
+    uniform_start::Bool=false, linfit_slope::Float64=1.0, burn_in::Float64=1.0 )
   ideal_init = 0.5
   return temporal_result_type( simtype, num_trials, N, num_subpops, num_emmigrants, num_attributes, ngens, burn_in, uniform_start, horiz_select, probHSelect,
-      mutStddev, ideal_init, move_range, move_time_interval, minFit, linear_fitness, linfit_slope, horiz_mutate, topology, 
+      mutStddev, ideal_init, move_range, move_time_interval, minFit,  linfit_slope, horiz_mutate, topology, 
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0.0 )
 end

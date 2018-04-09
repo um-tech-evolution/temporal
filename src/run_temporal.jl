@@ -33,6 +33,7 @@ function horiz_param_check( topology_list::Vector{String}, num_subpops_list::Vec
 end
 
 function print_temporal_result( tr::temporal_result_type )
+  println("simtype: ", tr.simtype)
   println("num_trials: ", tr.num_trials)
   println("N: ", tr.N)
   println("num_subpops: ", tr.num_subpops)
@@ -47,7 +48,6 @@ function print_temporal_result( tr::temporal_result_type )
   println("ideal_init: ", tr.ideal_init)
   println("move_range: ", tr.move_range)
   println("move_time_interval: ", tr.move_time_interval)
-  println("linear_fitness: ",tr.linear_fitness)
   println("linfit_slope: ",tr.linfit_slope)
   println("horiz_mutate: ",tr.horiz_mutate)
   println("topology: ",tr.topology)
@@ -69,6 +69,7 @@ end
 function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_result_type )
   param_strings = [
     "# $(string(Dates.today()))",
+    "# simtype=$(tr.simtype)",
     "# num_trials=$(tr.num_trials)",
     "# N=$(tr.N)",
     "# num_subpops_list=$(num_subpops_list)",
@@ -80,7 +81,6 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     #"# mutStddev=$(tr.mutStddev)",
     "# uniform_start=$(tr.uniform_start)",
     "# minFit=$(tr.minFit)",
-    "# linear_fitness=$(tr.linear_fitness)",
     #"# linfit_slope=$(tr.linfit_slope)",
     #"# topology=$(tr.topology)"
   ]
@@ -97,7 +97,7 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
     "horiz_mutate",
     "probHSelect",
     "topology",
-    "linear_fitness_slope"
+    "linfit_slope"
     ]
   if tr.simtype == 2
     heads2 = [

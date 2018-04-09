@@ -6,7 +6,7 @@ or
 >  julia -p 4 -L TemporalEvolution.jl run.jl configs/example3
 =#
 export simtype
-@everywhere simtype = 2    
+@everywhere simtype = 2    # run  repeat_evolve instead of repeat_evolve_until_dead
 @everywhere T = 2    # number of trials
 @everywhere const N = 16       # Meta-population size
 const num_subpops_list =[4]                     # Number of subpopulations

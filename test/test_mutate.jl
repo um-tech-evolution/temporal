@@ -1,7 +1,8 @@
 using FactCheck
 include("../src/TemporalEvolution.jl")
 # Test the mutate_meta_pop!() function
-# Sample run:  julia -L ../src/TemporalEvolution.jl test_mutate.jl
+# Sample run:  julia5 test_mutate.jl
+# Sample run:  julia -L ../src/TemporalEvolution.jl test_mutate.jl  # Failed 1/29/18
 
 function test_mutate()
   id = [0]

@@ -35,6 +35,10 @@ else
 end
 include("$(simname).jl")
 println("simname: ",simname)
+println("simtype: ",simtype)
+if simtype != 4
+  error("simtype for temporal fidelity must be 4")
+end
 #fd = fidelity(T,N,q,s,ngens,init_high_freq,psel_first)
 #println("fd: ",fd)
 run_trials( simname )

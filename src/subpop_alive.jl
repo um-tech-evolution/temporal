@@ -1,8 +1,11 @@
 export repeat_evolve_until_dead, evolve_until_dead
 
+@doc """ function repeat_evolve_until_dead()
+  Run repeated trails of evolve_until_dead()
+"""
 function repeat_evolve_until_dead( tr::temporal_result_type )
-  println("rep_evolve_until_dead: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
-        "  topology: ",tr.topology,"  linfit_slope: ",tr.linfit_slope)
+  println("repeat_evolve_until_dead: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
+        "  topology: ",tr.topology,"  linfit_slope: ",tr.linfit_slope)   ###
   if tr.num_trials == 1
     return evolve( tr )
   end
@@ -24,12 +27,14 @@ function repeat_evolve_until_dead( tr::temporal_result_type )
 ed
 
 end
-@doc """ function evolve_dead( )
+@doc """ function evolve_until_dead( )
+A subpop is "dead" if all members have fitness minFit.
 Evolve generations until all subpops are dead, either on a single generation update, or on a move optimum update
 Doesn't keep track of the other statistics.
 See types.jl for the definition of temporal_result_type, and for the definition of the fields of this type.
 """
 function evolve_until_dead( tr::temporal_result_type )
+  println("function evolve_until_dead")  ###
   #println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,"  topology: ",tr.topology)
   int_burn_in = Int(round(tr.burn_in*tr.N))
   id = [0]
@@ -40,8 +45,8 @@ function evolve_until_dead( tr::temporal_result_type )
   end
   vt = Dict{Int64,variant_type}()
   meta_pop = init_meta_pop( tr, vt, ideal, id )
-  #subpop_alive = fill(true,tr.num_subpops)  # Should be used with linear_fitness and uniform start
-  #prev_subpop_alive = fill(true,tr.num_subpops)  # Should be used with linear_fitness and uniform start
+  #subpop_alive = fill(true,tr.num_subpops)  # Should be used with uniform start
+  #prev_subpop_alive = fill(true,tr.num_subpops)  # Should be used with uniform start
   sbp = subpop_properties_init( tr.num_subpops)
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
