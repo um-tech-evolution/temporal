@@ -11,16 +11,14 @@ ideals = [ideal0,ideal5]
 minFits = [minFit0,minFit1]
 
 function test_fitness()
-  for linfit in [true,false]
     for ideal in ideals
       for attrib in attribs
         for minFit in minFits
-          fit = fitness(attrib,ideal,minFit=minFit,linear_fitness=linfit)
-          println("linfit: ",linfit,"  ideal: ",ideal,"  attr: ",attrib,"  minFit: ",minFit,"  fit: ",fit)
+          fit = fitness(attrib,ideal,minFit=minFit,linfit_slope=1.0)
+          println("ideal: ",ideal,"  attr: ",attrib,"  minFit: ",minFit,"  fit: ",fit)
         end
       end
     end
-  end
 end
 
 test_fitness()

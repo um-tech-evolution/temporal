@@ -102,6 +102,8 @@ function writeheader( stream::IO, num_subpops_list::Vector{Int64}, tr::temporal_
   if tr.simtype == 2
     heads2 = [
     "mean_fitness",
+    "fitness_variance",
+    "attribute_variance",
     "stddev_fitness",
     "stddev_attributes",
     "mean_fraction_subpops_below_minFit",
@@ -140,6 +142,8 @@ function writerow( stream::IO, trial::Int64, tr::temporal_result_type )
   if tr.simtype==2
     line2 = Any[
       tr.fitness_mean,
+      tr.fitness_variance,
+      tr.attribute_variance,
       sqrt(tr.fitness_variance),
       sqrt(tr.attribute_variance),
       tr.mean_fraction_subpops_below_minFit,

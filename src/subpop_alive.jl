@@ -7,7 +7,7 @@ function repeat_evolve_until_dead( tr::temporal_result_type )
   println("repeat_evolve_until_dead: num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
         "  topology: ",tr.topology,"  linfit_slope: ",tr.linfit_slope)   ###
   if tr.num_trials == 1
-    return evolve( tr )
+    return evolve_until_dead( tr )
   end
   tr_list = temporal_result_type[]
   sum_generational_lifetime = 0.0
@@ -57,24 +57,26 @@ function evolve_until_dead( tr::temporal_result_type )
   #while (any(sbp.generational_subpop_alive) || any(sbp.prev_subpop_alive)) && g < tr.ngens+int_burn_in
   while (tr.generational_lifetime==0 || tr.move_update_lifetime==0 ) && g < tr.ngens+int_burn_in
     if tr.move_time_interval > 0 && g > int_burn_in && g % tr.move_time_interval == 0
-      #println(" g: ",g,"  #optimum to be moved   means: ", fmeans( meta_pop, vt ))
-      #println("B g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
-      #println("B g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
+      println(" g: ",g,"  #optimum to be moved   means: ", fmeans( meta_pop, vt ))
+      println("B g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
+      println("B g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
       move_optima( ideal, tr.move_range )
-      #println(" g: ",g,"  #optimum just  moved   means: ", fmeans( meta_pop, vt ))
+      println(" g: ",g,"  #optimum just  moved   means: ", fmeans( meta_pop, vt ))
       subpop_alive_opt_move_update( sbp, meta_pop,  vt, tr.minFit )
-      #println("A g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
-      #println("A g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
+      println("A g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
+      println("A g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
     end
     mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
+    mmeans = fmeans( meta_pop, vt )
+    println("  g: ",g," after mutate means: ",mmeans)
     for  j = 1:tr.num_subpops
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
     end
     mmeans = fmeans( meta_pop, vt )
-    #println("  g: ",g," before horiz: ",mmeans)
+    println("  g: ",g," before horiz means: ",mmeans)
     horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
     mmeans, vvars = means_vars( meta_pop, vt )
-    #println("  g: ",g," after horiz: ",mmeans)
+    println("  g: ",g," after horiz: ",mmeans)
     #println("vt: ",vt)
     subpop_alive_gen_update( sbp, meta_pop, vt, tr.minFit )
     #println("  g: ",g,"  sbp.generational_subpop_alive: ",sbp.generational_subpop_alive )
@@ -93,18 +95,18 @@ function evolve_until_dead( tr::temporal_result_type )
     #println("evolve_until_dead ran for ",g," generations when the generation limit was reached")
     tr.gen_limit_reached_count += 1
     if tr.generational_lifetime > 0
-      #println("all subpops died at generation ",tr.generational_lifetime,"  (generational update).")
+      println("all subpops died at generation ",tr.generational_lifetime,"  (generational update).")
     else
       tr.generational_lifetime = g
     end
     if tr.move_update_lifetime > 0
-      #println("all subpops died at generation ",tr.move_update_lifetime,"(move optimum update).")
+      println("all subpops died at generation ",tr.move_update_lifetime,"(move optimum update).")
     else
       tr.move_update_lifetime = g
     end
   else 
-    #println("all subpops died at generation ",tr.generational_lifetime,"  (genupdate).")
-    #println("all subpops died at generation ",tr.move_update_lifetime,"  (move optimum update).")
+    println("all subpops died at generation ",tr.generational_lifetime,"  (genupdate).")
+    println("all subpops died at generation ",tr.move_update_lifetime,"  (move optimum update).")
   end
   return tr
 end

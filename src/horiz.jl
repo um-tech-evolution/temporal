@@ -169,7 +169,8 @@ function new_emmigrants_funct( meta_pop::PopList, tr::temporal_result_type, vt::
     emmigrants = Vector{Int64}()  # emmigrants is the list of individuals that will emmigrate from subpop k
     if emmigrant_select
       #Base.push!( emmigrants, propsel( meta_pop[neighborlist[j]], tr.ne, vt ) )
-      emmigrants = propsel( meta_pop[neighborlist[j]], tr.ne, vt ) 
+      #emmigrants = propsel( meta_pop[neighborlist[j]], tr.ne, vt ) 
+      emmigrants = propsel( meta_pop[source_subpop_list[j]], tr.ne, vt ) 
     else
       s = StatsBase.sample(collect(1:subpop_size),tr.ne,replace=false,ordered=true) # random sample of indices
       #Base.push!( emmigrants, meta_pop[source_subpop_list[j]][s] )   # Neutral
