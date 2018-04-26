@@ -7,20 +7,23 @@ export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, fmeans, means_v
 #include("mutate_debug.jl")
 
 @doc """ function repeat_evolve( )
-Runs evolve()  tr.num_subpops times, and averages the results.
+Runs evolve()  tr[:num_subpops] times, and averages the results.
+See types.jl for the definition of param_type and result_type, and see types.jl for legal keys for this type.
 """
-function repeat_evolve( tr::temporal_result_type )
-  #println("rep_evolve: num_subpops: ",tr.num_subpops,"  ngens: ",tr.ngens,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,
-  #      "  topology: ",tr.topology,"  num_attributes: ",tr.num_attributes)
-  if tr.num_trials == 1
-    return evolve( tr )
+function repeat_evolve( tp::param_type, tr::result_type )  # tp is parameter dictionary, tr is results dictionary
+  #println("rep_evolve: num_subpops: ",tp[:num_subpops],"  ngens: ",tp[:ngens],"  num_emmigrants: ",tp[:ne],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],
+  #      "  topology: ",tp[:topology],"  num_attributes: ",tp[:num_attributes])
+  if tp[:num_trials] == 1
+    return evolve( tp, tr )
   end
-  int_burn_in = Int(round(tr.burn_in*tr.N))
+  int_burn_in = Int(round(tp[:burn_in]*tp[:N]))
   #println("int_burn_in: ",int_burn_in)
-  tr_list = temporal_result_type[]
+  tr_list = result_type[]
   sum_mean = 0.0
-  sum_vars = 0.0
+  sum_fit_vars = 0.0
   sum_attr_vars = 0.0
+  sum_fit_stddev = 0.0
+  sum_attr_stddev = 0.0
   sum_mean_fraction_subpops_below_minFit = 0
   sum_fract_gens_with_all_subpops_below_minFit = 0
   sum_innovations_per_gen_trial = 0
@@ -28,94 +31,95 @@ function repeat_evolve( tr::temporal_result_type )
   sum_deleterious_mutations_per_gen_trial = 0
   sum_half_deleterious_mutations_per_gen_trial = 0
 
-  for t = 1:tr.num_trials
-    tr = evolve( tr ) 
+  for t = 1:tp[:num_trials]
+    tr = evolve( tp, tr ) 
     Base.push!( tr_list, deepcopy(tr) )
-    sum_mean_fraction_subpops_below_minFit+= tr.mean_fraction_subpops_below_minFit
-    sum_fract_gens_with_all_subpops_below_minFit += tr.fraction_gens_with_all_subpops_below_minFit
-    #println("t: ",t," tr.fitness_variance: ",tr.fitness_variance)
-    sum_mean += tr.fitness_mean
-    #println("t: ",t,"  fitness_mean: ",tr.fitness_mean)
-    sum_vars += tr.fitness_variance
-    sum_attr_vars += tr.attribute_variance
-    sum_innovations_per_gen_trial += tr.innovations_per_gen_trial
-    sum_half_innovations_per_gen_trial += tr.half_innovations_per_gen_trial
-    sum_deleterious_mutations_per_gen_trial += tr.deleterious_mutations_per_gen_trial
-    sum_half_deleterious_mutations_per_gen_trial += tr.half_deleterious_mutations_per_gen_trial
+    sum_mean_fraction_subpops_below_minFit+= tr[:mean_fraction_subpops_below_minFit]
+    sum_fract_gens_with_all_subpops_below_minFit += tr[:fraction_gens_with_all_subpops_below_minFit]
+    #println("t: ",t," tp[:fitness_variance]: ",tr[:fitness_variance])
+    sum_mean += tr[:fitness_mean]
+    #println("t: ",t,"  fitness_mean: ",tr[:fitness_mean])
+    sum_fit_vars += tr[:fitness_variance]
+    sum_attr_vars += tr[:attribute_variance]
+    sum_fit_stddev += tr[:stddev_fitness]
+    sum_attr_stddev += tr[:stddev_attributes]
+    sum_innovations_per_gen_trial += tr[:innovations_per_gen_trial]
+    sum_half_innovations_per_gen_trial += tr[:half_innovations_per_gen_trial]
+    sum_deleterious_mutations_per_gen_trial += tr[:deleterious_mutations_per_gen_trial]
+    sum_half_deleterious_mutations_per_gen_trial += tr[:half_deleterious_mutations_per_gen_trial]
   end
-  tr.mean_fraction_subpops_below_minFit = sum_mean_fraction_subpops_below_minFit/tr.num_trials
-  tr.fraction_gens_with_all_subpops_below_minFit = sum_fract_gens_with_all_subpops_below_minFit/tr.num_trials
-  tr.fitness_mean = sum_mean/tr.num_trials
-  tr.fitness_variance = sum_vars/tr.num_trials
-  println("  tr.fitness_mean: ",tr.fitness_mean)
-  println("  tr.fitness_variance: ",tr.fitness_variance)
-  println("  tr.attribute_variance: ",tr.attribute_variance)
-  #println("  tr.num_trials: ",tr.num_trials)
-  tr.attribute_variance = sum_attr_vars/tr.num_trials
-  tr.innovations_per_gen_trial = sum_innovations_per_gen_trial/tr.num_trials
-  tr.half_innovations_per_gen_trial = sum_half_innovations_per_gen_trial/tr.num_trials
-  tr.deleterious_mutations_per_gen_trial = sum_deleterious_mutations_per_gen_trial/tr.num_trials
-  tr.half_deleterious_mutations_per_gen_trial = sum_half_deleterious_mutations_per_gen_trial/tr.num_trials
-  #println( "innov_counts.pos:",tr.innovations_per_gen_trial, "  innov_counts.half_pos:",tr.half_innovations_per_gen_trial, 
-  #      "  innov_counts.neg:",tr.deleterious_mutations_per_gen_trial, "  innov_counts.half_neg:",tr.half_deleterious_mutations_per_gen_trial)
+  tr[:mean_fraction_subpops_below_minFit] = sum_mean_fraction_subpops_below_minFit/tp[:num_trials]
+  tr[:fraction_gens_with_all_subpops_below_minFit] = sum_fract_gens_with_all_subpops_below_minFit/tp[:num_trials]
+  tr[:fitness_mean] = sum_mean/tp[:num_trials]
+  tr[:fitness_variance] = sum_fit_vars/tp[:num_trials]
+  tr[:attribute_variance] = sum_attr_vars/tp[:num_trials]
+  tr[:stddev_fitness] = sum_fit_stddev/tp[:num_trials]
+  tr[:stddev_attributes] = sum_attr_stddev/tp[:num_trials]
+  #println("  tr[:fitness_variance]: ",tr[:fitness_variance])
+  #println("  tp[:num_trials]: ",tp[:num_trials])
+  tr[:innovations_per_gen_trial] = sum_innovations_per_gen_trial/tp[:num_trials]
+  tr[:half_innovations_per_gen_trial] = sum_half_innovations_per_gen_trial/tp[:num_trials]
+  tr[:deleterious_mutations_per_gen_trial] = sum_deleterious_mutations_per_gen_trial/tp[:num_trials]
+  tr[:half_deleterious_mutations_per_gen_trial] = sum_half_deleterious_mutations_per_gen_trial/tp[:num_trials]
+  #println( "innov_counts.pos:",tr[:innovations_per_gen_trial], "  innov_counts.half_pos:",tr[:half_innovations_per_gen_trial], 
+  #      "  innov_counts.neg:",tr[:deleterious_mutations_per_gen_trial], "  innov_counts.half_neg:",tr[:half_deleterious_mutations_per_gen_trial])
   #return tr, tr_list
   return tr
 end
 
 @doc """ function evolve( )
 The main simulation function for temporal.
-See types.jl for the definition of temporal_result_type, and for the definition of the fields of this type.
+See types.jl for the definition of param_type and result_type, and see run.jl for legal keys for this type.
 """
-function evolve( tr::temporal_result_type )
+function evolve( tp::param_type, tr::result_type ) # tp is parameter dictionary, tr is results dictionary
   #println("function evolve") ###
-  #println("num_subpops: ",tr.num_subpops,"  num_emmigrants: ",tr.ne,"  horiz_sel: ",tr.horiz_select,"  mutStddev: ",tr.mutStddev,"  topology: ",tr.topology)
-  int_burn_in = Int(round(tr.burn_in*tr.N))
+  #println("num_subpops: ",tp[:num_subpops],"  num_emmigrants: ",tp[:num_emigrants],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],"  topology: ",tp[:topology])
+  int_burn_in = Int(round(tp[:burn_in]*tp[:N]))
   #println("int_burn_in: ",int_burn_in)
   id = [0]
-  att_vars = zeros(tr.num_subpops)
-  cumm_means = zeros(tr.num_subpops)
-  cumm_vars = zeros(tr.num_subpops)
-  cumm_attr_vars = zeros(tr.num_subpops)
+  att_vars = zeros(tp[:num_subpops])
+  cumm_means = zeros(tp[:num_subpops])
+  cumm_vars = zeros(tp[:num_subpops])
+  cumm_attr_vars = zeros(tp[:num_subpops])
   cumm_count_subpops_below_minFit = 0
   cumm_count_gens_with_all_subpops_below_minFit = 0
   cumm_count_avg_below_cutoff = 0
-  ideal = fill( tr.ideal_init, tr.num_attributes )
-  subpop_size = Int(floor(tr.N/tr.num_subpops))
-  if subpop_size*tr.num_subpops != tr.N
-    println("N:",tr.N,"  subpop_size: ",subpop_size,"  tr.num_subpops: ",tr.num_subpops,"  prod: ",subpop_size*tr.num_subpops)
-    error("N must equal subpop_size*tr.num_subpops")
+  ideal = fill( tp[:ideal_init], tp[:num_attributes] )
+  subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
+  if subpop_size*tp[:num_subpops] != tp[:N]
+    println("N:",tp[:N],"  subpop_size: ",subpop_size,"  tp[:num_subpops]: ",tp[:num_subpops],"  prod: ",subpop_size*tp[:num_subpops])
+    error("N must equal subpop_size*tp[:num_subpops]")
   end
   trial_innov_counts = trial_innovation_counts(0.0,0.0,0.0,0.0)
   vt = Dict{Int64,variant_type}()
-  meta_pop = init_meta_pop( tr, vt, ideal, id )
+  meta_pop = init_meta_pop( tp, vt, ideal, id )
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
-  for g = 1:(tr.ngens+int_burn_in)
-    if g > int_burn_in && tr.move_time_interval > 0 && g % tr.move_time_interval == 0
-      move_optima( ideal, tr.move_range )
+  for g = 1:(tp[:ngens]+int_burn_in)
+    if g > int_burn_in && tp[:move_time_interval] > 0 && g % tp[:move_time_interval] == 0
+      move_optima( ideal, tp[:move_range] )
       #println("optimum moved")
       mmeans, vvars = means_vars( meta_pop, vt )
       #println("g: ",g,"  metapop: ",meta_pop)
       #println("g: ",g,"  mmeans: ",mmeans,"  ")
     end
     #println("before mutate: meta_pop: ",meta_pop)
-    gen_innov_counts = mutate_meta_pop!( meta_pop, vt, ideal, id, tr )  # will also re-evaluate fitness
+    gen_innov_counts = mutate_meta_pop!( meta_pop, vt, ideal, id, tp )  # will also re-evaluate fitness
     #println("gen_innov_counts: ",gen_innov_counts)
     #println("after mutate: meta_pop: ",meta_pop)
-    
-    for  j = 1:tr.num_subpops
-      meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
+    for  j = 1:tp[:num_subpops]
+      #meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
+      propsel!( meta_pop[j], vt )  # comment out for fitness test
     end
-    #println("after propsel: meta_pop: ",meta_pop)
     #=
-    for  j = 1:tr.num_subpops
+    println("after propsel: meta_pop: ",meta_pop)
+    for  j = 1:tp[:num_subpops]
       println("j: ",j," ",[ (vt[v].attributes[1], vt[v].fitness) for v in meta_pop[j] ])
-    end
+    end 
     =#
-    
     mmeans = fmeans( meta_pop, vt )
-    println("g: ",g,"  mmeans: ",mmeans,"  ")
-    horiz_transfer( meta_pop, tr, vt, ideal, mmeans, id, g )
+    #println("g: ",g,"  mmeans: ",mmeans,"  ")
+    horiz_transfer( meta_pop, tp, vt, ideal, mmeans, id, g )
     mmeans, vvars = means_vars( meta_pop, vt )
     #print("g: ",g,"  mmeans: ",mmeans,"  ")
     #println("g: ",g,"  mmeans: ",mmeans)
@@ -126,161 +130,75 @@ function evolve( tr::temporal_result_type )
       cumm_means += mmeans
       cumm_vars += vvars
       #=  uncomment for fitness test
-      for  j = 1:tr.num_subpops
+      for  j = 1:tp[:num_subpops]
         #println("j: ",j," ",[ (vt[v].attributes[1], vt[v].fitness) for v in meta_pop[j] ])
-        #println("j: ",j," ",[ vt[v].attributes[1] for v in meta_pop[j] ])
-        #println("variance: ",var([ vt[v].attributes[1] for v in meta_pop[j]]),"  std: ",std([ vt[v].attributes[1] for v in meta_pop[j]]))
+        println("j: ",j," ",[ vt[v].attributes[1] for v in meta_pop[j] ])
+        println("variance: ",var([ vt[v].attributes[1] for v in meta_pop[j]]),"  std: ",std([ vt[v].attributes[1] for v in meta_pop[j]]))
       end
       =#
-      println("g: ",g,"  metapop: ",meta_pop)
+      #println("g: ",g,"  metapop: ",meta_pop)
       trial_innov_counts.pos += gen_innov_counts.pos
       trial_innov_counts.half_pos += gen_innov_counts.half_pos
       trial_innov_counts.neg += gen_innov_counts.neg
       trial_innov_counts.half_neg += gen_innov_counts.half_neg
       #print("g: ",g,"  mmeans: ",mmeans,"  ")
       #println("gen_innov_counts.pos:",gen_innov_counts.pos,"  gen_innov_counts.half_pos:",gen_innov_counts.half_pos,"  gen_innov_counts.neg:",gen_innov_counts.neg,"  gen_innov_counts.half_neg:",gen_innov_counts.half_neg)
-      println( "  tr.half_deleterious_mutations_per_gen_trial: ",tr.half_deleterious_mutations_per_gen_trial)
-      #println("   fstdev: ",sqrt.(vvars))
+      #println( "  tr[:half_deleterious_mutations_per_gen_trial]: ",tr[:half_deleterious_mutations_per_gen_trial])
+      #println("   fstdev: ",sqrt(vvars))
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
-      #println("   astdev: ",sqrt.(att_vars))
-      count_subpops_below_minFit = count_subpops_below_minfit( meta_pop, vt, tr.minFit )
-      count_gens_with_all_subpops_below_minFit = (count_subpops_below_minFit == tr.num_subpops) ? 1 : 0
+      #println("   astdev: ",sqrt(att_vars))
+      count_subpops_below_minFit = count_subpops_below_minfit( meta_pop, vt, tp[:minFit] )
+      count_gens_with_all_subpops_below_minFit = (count_subpops_below_minFit == tp[:num_subpops]) ? 1 : 0
       #count_gens_with_all_subpops_below_minFit += count_subpops_below_minFit 
-      #print("  count_subpops_below_minFit: ",count_subpops_below_minFit)
-      #println("  count_gens_with_all_subpops_below_minFit: ",count_gens_with_all_subpops_below_minFit)
+      ##print("  count_subpops_below_minFit: ",count_subpops_below_minFit)
+      ##println("  count_gens_with_all_subpops_below_minFit: ",count_gens_with_all_subpops_below_minFit)
       cumm_count_subpops_below_minFit += count_subpops_below_minFit
       cumm_count_gens_with_all_subpops_below_minFit += count_gens_with_all_subpops_below_minFit
       #println("cumm_count_subpops_below_minFit: ",cumm_count_subpops_below_minFit)
       #println("cumm_count_gens_with_subpop_below_minFit: ",cumm_count_gens_with_all_subpops_below_minFit)
     end
   end
-  tr.mean_fraction_subpops_below_minFit = cumm_count_subpops_below_minFit/tr.ngens/tr.num_subpops
-  tr.fraction_gens_with_all_subpops_below_minFit = cumm_count_gens_with_all_subpops_below_minFit/tr.ngens  
-  tr.fitness_mean = mean(cumm_means/tr.ngens)
-  println("cumm_means/tr.ngens: ",cumm_means/tr.ngens,"  mean: ",tr.fitness_mean)
+  tr[:mean_fraction_subpops_below_minFit] = cumm_count_subpops_below_minFit/tp[:ngens]/tp[:num_subpops]
+  tr[:fraction_gens_with_all_subpops_below_minFit] = cumm_count_gens_with_all_subpops_below_minFit/tp[:ngens]  
+  tr[:fitness_mean] = mean(cumm_means/tp[:ngens])
+  #println("cumm_means/tp[:ngens]: ",cumm_means/tp[:ngens],"  mean: ",tr[:fitness_mean])
+  #println("fit mean: ", tr[:fitness_mean])
   #println("cumm_count_subpops_below_minFit: ",cumm_count_subpops_below_minFit)
   #println("cumm_count_gens_with_subpop_below_minFit: ",cumm_count_gens_with_all_subpops_below_minFit)
-  tr.innovations_per_gen_trial = trial_innov_counts.pos/tr.ngens
-  tr.half_innovations_per_gen_trial = trial_innov_counts.half_pos/tr.ngens
-  tr.deleterious_mutations_per_gen_trial = trial_innov_counts.neg/tr.ngens
-  tr.half_deleterious_mutations_per_gen_trial = trial_innov_counts.half_neg/tr.ngens
-  #println("  innov_counts.pos:",tr.innovations_per_gen_trial, "  innov_counts.half_pos:",tr.half_innovations_per_gen_trial, 
-  #      "  innov_counts.neg:",tr.deleterious_mutations_per_gen_trial, "  innov_counts.half_neg:",tr.half_deleterious_mutations_per_gen_trial)
-  tr.fitness_variance = mean(cumm_vars/tr.ngens)
-  tr.attribute_variance = mean(cumm_attr_vars/tr.ngens)
-  println("fitness variance: ", tr.fitness_variance,"  attribute variance: ",  tr.attribute_variance)
+  tr[:innovations_per_gen_trial] = trial_innov_counts.pos/tp[:ngens]
+  tr[:half_innovations_per_gen_trial] = trial_innov_counts.half_pos/tp[:ngens]
+  tr[:deleterious_mutations_per_gen_trial] = trial_innov_counts.neg/tp[:ngens]
+  tr[:half_deleterious_mutations_per_gen_trial] = trial_innov_counts.half_neg/tp[:ngens]
+  #println("  innov_counts.pos:",tr[:innovations_per_gen_trial], "  innov_counts.half_pos:",tr[:half_innovations_per_gen_trial], 
+  #      "  innov_counts.neg:",tr[:deleterious_mutations_per_gen_trial], "  innov_counts.half_neg:",tr[:half_deleterious_mutations_per_gen_trial])
+  tr[:fitness_variance] = mean(cumm_vars/tp[:ngens])
+  tr[:attribute_variance] = mean(cumm_attr_vars/tp[:ngens])
+  tr[:stddev_fitness] = sqrt(mean(cumm_vars/tp[:ngens]))
+  tr[:stddev_attributes] = sqrt(mean(cumm_attr_vars/tp[:ngens]))
+  #println("fitness variance: ", tr[:fitness_variance],"  attribute variance: ",  tr[:attribute_variance])
   return tr
 end
 
-function init_meta_pop( tr::temporal_result_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64} )
-  #println("start init_meta_pop")
-  subpop_size = Int(floor(tr.N/tr.num_subpops))
-  if tr.uniform_start
-    meta_pop = [  fill(1,subpop_size)  for j = 1:tr.num_subpops ]
+function init_meta_pop( tp::param_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64} )
+  #println("init_meta_pop  meta_pop: ",meta_pop)
+  subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
+  if tp[:uniform_start]
+    meta_pop = [  fill(1,subpop_size)  for j = 1:tp[:num_subpops] ]
     attr = ideal
-    vt[1] = variant_type( fitness( attr, ideal, minFit=tr.minFit, linfit_slope=tr.linfit_slope ), attr )
+    vt[1] = variant_type( fitness( attr, ideal, minFit=tp[:minFit], linfit_slope=tp[:linfit_slope] ), attr )
     id[1] += 1
   else
-    meta_pop = [ (j-1)*subpop_size+collect(1:subpop_size)  for j = 1:tr.num_subpops ]
-    for i = 1:tr.N
-      attr = rand(tr.num_attributes)
-      vt[i] = variant_type( fitness( attr, ideal, minFit=tr.minFit, linfit_slope=tr.linfit_slope ), attr )
+    meta_pop = [ (j-1)*subpop_size+collect(1:subpop_size)  for j = 1:tp[:num_subpops] ]
+    for i = 1:tp[:N]
+      attr = rand(tp[:num_attributes])
+      vt[i] = variant_type( fitness( attr, ideal, minFit=tp[:minFit], linfit_slope=tp[:linfit_slope] ), attr )
     end
-    id[1] += tr.N
+    id[1] += tp[:N]
   end
   #println("end init_meta_pop  meta_pop:",meta_pop)
   #println("end init_meta_pop")
   return meta_pop
-end
-
-function mutate_subpop!( subpop::Population, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, 
-    id::Vector{Int64}, tr::temporal_result_type, innov_counts::generational_innovation_counts  )
-  #println("starting mutate_subpop!  subpop: ",subpop)
-  subpop_size = length(subpop)
-  v_list = [vt[subpop[i]] for i = 1:subpop_size ]
-  #innov_counts = generational_innovation_counts(0,0,0,0)
-  fitnesses = zeros(Float64,subpop_size)
-  for i = 1:subpop_size
-    #=
-    if id[1] == 480
-      println("B i: ",i," subpop[i]: ",subpop[i],"  v_list[i]: ",v_list[i])
-    end
-    =#
-    subpop[i] = id[1]
-    id[1] += 1
-    vt[subpop[i]] = mutate_variant( v_list[i], tr.mutStddev )
-    fitnesses[i] = fitness( vt[subpop[i]].attributes, ideal, minFit=tr.minFit, linfit_slope=tr.linfit_slope )
-    vt[subpop[i]].fitness = fitnesses[i]
-  end
-  mmean = mean(fitnesses)
-  #println("mutate_subpop: fitness mean: ",mmean)
-  num_positive_select = count(x->x>mmean+mmean/subpop_size,fitnesses)
-  num_half_positive_select = count(x->x>mmean+0.5*mmean/subpop_size,fitnesses)
-  num_negative_select = count(x->x<mmean-1.0*mmean/subpop_size,fitnesses)
-  num_half_negative_select = count(x->x<mmean-0.5*mmean/subpop_size,fitnesses)
-  #num_half_negative_select = length(fitnesses)
-  #println( "num_pos: ",num_positive_select, "  num_half_pos: ",num_half_positive_select, "  num_neg: ",num_negative_select, "  num_half_neg: ",num_half_negative_select)
-  #println( "  num_half_neg: ",num_half_negative_select)
-  innov_counts.pos += num_positive_select
-  innov_counts.half_pos += num_half_positive_select
-  innov_counts.neg += num_negative_select
-  innov_counts.half_neg += num_half_negative_select
-end
-
-@doc """ function mutate_meta_pop!( )
-  Mutates each individual of each subpop of meta_pop.  
-  Mutation is done by applying the function mutate_variant().
-  The mutated individual has a new id, and thus is a different individual.
-  For each individual, determines whether the new fitness corresponds to a selection coefficient is in the nearly neutral range.
-  The selection coefficient of an individual i of a subpop is defined as  s(i) = fitness(i)/mean_fitness  where mean_fitness is the mean over the subpop.
-  Individual i is advantageous if  s(i) > 1 + 1/subpop_size and is disadvantageous if s(i) < 1 - 1/subpopsize.
-  We think of advantageous individuals as innovations.
-  We also define individual i to be half-advantageous if  s(i) > 1+0.5/subpop_size and half-disadvantagous if s(i) < 1-0.5/subpop_size.
-"""
-function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tr::temporal_result_type  )
-  num_subpops = length(meta_pop)
-  subpop_size = length(meta_pop[1])
-  #println("num_subpops: ",num_subpops,"  subpop_size: ",subpop_size)
-  gen_innov_counts = generational_innovation_counts(0,0,0,0)
-  for j = 1:num_subpops
-    mutate_subpop!(meta_pop[j],vt,ideal,id,tr,gen_innov_counts)
-  end
-  return gen_innov_counts
-end
-
-function mutate_variant( v::variant_type, mutStddev::Float64 )
-  new_v = deepcopy(v)
-  new_v.attributes = mutate_attributes( new_v.attributes, mutStddev )
-  new_v
-end
-
-@doc """ mutate_attributes( )
-  Add a normally distributed (with standard deviation mutStddev) random value to each attribute.
-  If the result is outside of the unit interval [0,1], wrap around.
-"""
-function mutate_attributes( attributes::Vector{Float64}, mutStddev::Float64 )
-  #println("mutate attributes  mutStddev: ",mutStddev,"  attributes: ",attributes)
-  new_attributes = deepcopy(attributes)
-  for i = 1:length(attributes)
-    #println("B new_attributes[",i,"]: ",new_attributes[i])
-    new_attributes[i] += +mutStddev*randn()
-    while new_attributes[i] < 0
-        new_attributes[i] += 1.0
-        #println("wrapped up: ",new_attributes[i])
-    end
-    while new_attributes[i] > 1.0
-        new_attributes[i] -= 1.0
-        #println("wrapped down: ",new_attributes[i])
-    end
-    if new_attributes[i] < 0.0 || new_attributes[i] > 1.0
-      error("attribute not wrapped")
-    end
-    new_attributes[i] = min(1.0,max(0.0,new_attributes[i]))
-    #println("A new_attributes[",i,"]: ",new_attributes[i])
-  end
-  #println("new_attributes: ",new_attributes)
-  return new_attributes
 end
 
 @doc """ move_optima()

@@ -45,6 +45,8 @@ function sum_distance( attributes::Vector{Float64}, ideal::Vector{Float64}, minF
   return sum 
 end
 
+max_distance( attributes::Vector{Float64}, ideal::Vector{Float64} )= maximum(abs.(attributes-ideal))
+
 @doc """ fitness()
 
 """

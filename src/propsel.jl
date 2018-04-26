@@ -16,7 +16,7 @@ Apply proportional selection to Population pop to generate a new population of s
 Assumes that all elements (integers) in pop have their fitnesses defined in variant_table.
 """
 function propsel( pop::Population, n::Int64, variant_table::Dict{Int64,variant_type} )
-  new_pop = zeros(Int64,n)
+  #println("propsel n: ",n,"  pop: ",pop)
   fmax = 0.0
   for v in pop
     fitv = variant_table[v].fitness
@@ -29,9 +29,11 @@ function propsel( pop::Population, n::Int64, variant_table::Dict{Int64,variant_t
   end
   if fmax == 0.0
     # all elements have fitness zero
-    return
+    println("all elements have fitness zero")
+    deepcopy(pop)
   end
 
+  new_pop = zeros(Int64,n)
   N = length(pop)
   k = 0
   while k < n
@@ -42,10 +44,9 @@ function propsel( pop::Population, n::Int64, variant_table::Dict{Int64,variant_t
       k += 1
     end
   end
+  #println("end propsel: new_pop: ",new_pop)
   new_pop
 end
-
-
 
 @doc """function propsel!()
 Conduct proportional selection in-place.  
@@ -63,6 +64,7 @@ function propsel!( pop::Population, variant_table::Dict{Int64,variant_type} )
   end
   if fmax == 0.0
     # all elements have fitness zero
+    println("all elements have fitness zero")
     return
   end
 
@@ -71,7 +73,7 @@ function propsel!( pop::Population, variant_table::Dict{Int64,variant_type} )
   k = 0
   while k < n
     i = rand(1:n)
-    w = variant_table[v].fitness
+    w = variant_table[pop[i]].fitness/fmax
     if rand() < w
       selected[k + 1] = i
       k += 1

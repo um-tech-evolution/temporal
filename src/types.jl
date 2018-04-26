@@ -5,6 +5,9 @@ using StatsBase
 const Population =  Array{Int64,1}
 const PopList = Array{Population,1}
 
+const param_type = Dict{Symbol,Any}
+const result_type = Dict{Symbol,Any}
+
 type variant_type
   fitness::Float64    # The fitness of this variant
   attributes::Vector{Float64}   # attributes of the variant
@@ -34,6 +37,52 @@ type trial_innovation_counts
   half_neg::Float64
 end
 
+global temporal_param_fields = [
+  :simtype    # run  repeat_evolve instead of repeat_evolve_until_dead
+  :simname     # name of configuration file (with .jl extension) and of output file (with .csv extenseion)
+  :num_trials  # number of trials
+  :N        # Meta-population size
+  :num_subpops                     # Number of subpopulations
+  :num_attributes        # number attributes for quantitative representation
+  :ngens       # Generations after burn-in
+  :num_emigrants                    # number emigrants
+  :mutStddev
+  :move_range
+  :move_time_interval
+  :horiz_select
+  :horiz_mutate
+  :probHSelect
+  :uniform_start
+  :ideal_init
+  :minFit
+  :linfit_slope
+  :topology
+  :burn_in    # generations of burn_in as a multiple of N
+]
+
+global temporal_result_fields = [
+  :fitness_mean
+  :fitness_variance
+  :attribute_variance
+  :stddev_fitness
+  :stddev_attributes
+  :mean_fraction_subpops_below_minFit
+  :fraction_gens_with_all_subpops_below_minFit
+  :innovations_per_gen_trial
+  :half_innovations_per_gen_trial
+  :deleterious_mutations_per_gen_trial
+  :half_deleterious_mutations_per_gen_trial
+]
+
+global subpop_alive_result_fields = [
+  :generational_lifetime
+  :move_update_lifetime
+  :gen_limit_reached_count
+]
+
+
+const temporal_result_type = Dict{Symbol,Any}
+#=
 type temporal_result_type
   simtype::Int64   # 1:  evolve_until_dead,   2: evolve with fixed generations
   num_trials::Int64   # number of repeated runs with the same parameter values
@@ -77,3 +126,4 @@ function temporal_result( simtype::Int64, num_trials::Int64, N::Int64, num_attri
       mutStddev, ideal_init, move_range, move_time_interval, minFit,  linfit_slope, horiz_mutate, topology, 
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0.0 )
 end
+=#

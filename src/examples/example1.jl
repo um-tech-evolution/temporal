@@ -4,31 +4,23 @@ Recommended command line to run:
 >  julia -L TemporalEvolution.jl run.jl configs/example1
 or
 >  julia -p 4 -L TemporalEvolution.jl run.jl configs/example1
-export simtype
 =#
-@everywhere simtype = 2   # run  repeat_evolve instead of repeat_evolve_until_dead
-const T = 3
-@everywhere const N = 4        # Meta-population size
-const num_subpops_list = [1]                     # Number of subpopulations
-#const num_attributes = 2        # number attributes for quantitative representation
-const num_attributes_list = [1]        # number attributes for quantitative representation
-const ngens = 3       # Generations after burn-in
-#const ne = 0                    # number emmigrants
-#const num_emmigrants = 1                    # number emmigrants
-const num_emmigrants_list = [0]                    # number emmigrants
-#const mutStddev = 0.02
-const mutStddev_list = [0.01]
-const move_range=0.1
-#const move_time_interval=10
-const move_time_interval_list=[0]
-#const probHSelect=0.5
-const probHSelect_list=[0.0]
-const horiz_select=true
-const horiz_mutate_list=[true]
-#const horiz_select_list=[true]
-const uniform_start=false
-const minFit = 0.0
-const topology_list=["vonneumann"]
-const linfit_slope=1.0
-#const linfit_slope_list=[1.0]
-const burn_in= 0.0    # generations of burn_in as a multiple of N
+simtype = 2   # run  repeat_evolve instead of repeat_evolve_until_dead
+num_trials = 3
+N = 4        # Meta-population size
+num_subpops=[1]                     # Number of subpopulations
+num_attributes = 1        # number attributes for quantitative representation
+ngens = 3       # Generations after burn-in
+num_emigrants = 0                    # number emigrants
+mutStddev = 0.01
+move_range=0.1
+move_time_interval=0
+probHSelect=[0.0]
+horiz_select=true
+horiz_mutate=true
+uniform_start=false
+ideal_init=0.5
+minFit = 0.0
+topology=["vonneumann"]
+linfit_slope=[1.0]
+burn_in= 0.0    # generations of burn_in as a multiple of N
