@@ -32,3 +32,4 @@ linfit_slope=1.0
 #linfit_slope=[1.0]
 topology= ["ring"]
 burn_in= 0.2    # generations of burn_in as a multiple of N
+additive_error=true

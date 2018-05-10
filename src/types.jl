@@ -53,11 +53,12 @@ global temporal_param_fields = [
   :horiz_mutate
   :probHSelect
   :uniform_start
-  :ideal_init
+  :ideal_init  # should be 0.5 for additive error, 1.0 for multiplicative error
   :minFit
-  :linfit_slope
-  :topology
+  :linfit_slope  # 1.0 for most runs
+  :topology   # one of circular, ring, moore, vonneumann, global
   :burn_in    # generations of burn_in as a multiple of N
+  :additive_error   # if additive_error==false, multiplicative error
 ]
 
 global temporal_result_fields = [

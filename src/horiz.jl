@@ -1,3 +1,16 @@
+#= horiz.jl
+Do horizontal transmission between subpopulations.
+The source subpopulation is a neighbor of the destination subpopulation in the given topology.
+Possible topologies are:  circular, ring, global, vonneuman, moore.
+There are 3 ways in which horizontal selection can be done:
+  1.  If probHSelect > 0, with probability probHSelect, the source population is chosen to have maximum mean fitness over the neighborhood.
+  2.  If emigrant_select == true, then emigrants from the source population are chosen by proportional selection.
+  3.  If neg_select == true, then the individuals to be replaced from the destination population are chosen by reverse proportional selection.
+Currently (5/2018), if the parameter horiz_select == true, both emigrant_select and neg_select are set to true.
+If linear fitness is used with a large value of minFit (such as 0.4), then proportional selection and reverse prop. sel. are weak.
+Thus, probHSelect > 0 give much stronger horizontal selection.
+=#
+
 using Base.Test
 export horiz_transfer, horiz_transfer_circular!, new_emmigrants_funct, add_emmigrants, horiz_transfer_by_fitness!
 
@@ -185,7 +198,7 @@ function new_emmigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64
         #println("e: ",i,"  vt[e]: ",vt[e])
         vt[i] = deepcopy(vt[e])
         if tp[:horiz_mutate]
-          mutate_attributes!( vt[i].attributes, tp[:mutStddev], true )   # true means additive mutation instead of multiplictive
+          mutate_attributes!( vt[i].attributes, tp[:mutStddev], tp[:additive_error] )   
         end
         fit = fitness( vt[i].attributes, ideal, minFit=tp[:minFit] )  
         #println("new emmigrant e: ",e,"  i: ",i,"  fitness: ",fit,"  from subpop: ",k)

@@ -33,3 +33,4 @@ ideal_init = 0.5
 linfit_slope = 1.0
 topology= ["none","circular","ring","vonneumann","moore","global"]
 burn_in= 0.0    # generations of burn_in as a multiple of N
+additive_error=true

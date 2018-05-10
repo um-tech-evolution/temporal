@@ -2,6 +2,8 @@ The files in this directory implement a different model from the temporal model.
 Eventually, this may be given its own repository, but for now, they are just under 
 the temporal model.
 
+For background, see temporal/notes/6_12_17prosel_math_model.tex and the corresponding pdf file.
+
 6/16/17
 
 Implemented the framework to run the propsel retention (fidelity) simulation model

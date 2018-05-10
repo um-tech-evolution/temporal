@@ -6,6 +6,7 @@ Recommended command line to run:
 export  print_temporal_result, writeheader, writerow
 #include("types.jl")
   
+# TODO:  Automate this function instead of hard coding  the fields
 function print_temporal_params( tp::param_type )
   println("simtype: ", tp[:simtype])
   println("num_trials: ", tp[:num_trials])
@@ -28,6 +29,7 @@ function print_temporal_params( tp::param_type )
   println("minFit: ",tp[:minFit])
 end 
 
+# TODO:  Automate this function instead of hard coding  the fields
 function print_temporal_results( tr::result_type )
   println("mean_fraction_subpops_below_cutoff: ", tr[:mean_fraction_subpops_below_minFit])
   println("fraction_gens_with_all_subpops_below_minFit: ", tr[:fraction_gens_with_all_subpops_below_minFit])
@@ -69,8 +71,9 @@ end
 function writerow( stream::IO, paramd::param_type, tp::param_type, resultd::result_type )
   #println("writerow paramd[:num_subpops]: ",paramd[:num_subpops],"  topology: ",paramd[:topology])
   line = Any[]
-  for k in keys(paramd)
-    if typeof(paramd[k]) <: Array
+  #for k in keys(paramd)
+  for k in temporal_param_fields
+    if paramd[k] != :null && typeof(paramd[k]) <: Array
       Base.push!(line,tp[k])
     end
   end 

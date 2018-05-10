@@ -33,3 +33,4 @@ linfit_slope=1.0
 #topology = "moore"
 topology = ["global"]
 burn_in= 0.0    # generations of burn_in as a multiple of N
+additive_error=true

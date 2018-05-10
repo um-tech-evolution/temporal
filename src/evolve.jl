@@ -103,7 +103,6 @@ function evolve( tp::param_type, tr::result_type ) # tp is parameter dictionary,
       #println("g: ",g,"  metapop: ",meta_pop)
       #println("g: ",g,"  mmeans: ",mmeans,"  ")
     end
-    #println("before mutate: meta_pop: ",meta_pop)
     gen_innov_counts = mutate_meta_pop!( meta_pop, vt, ideal, id, tp )  # will also re-evaluate fitness
     #println("gen_innov_counts: ",gen_innov_counts)
     #println("after mutate: meta_pop: ",meta_pop)
