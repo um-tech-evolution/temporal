@@ -1,4 +1,4 @@
-#using TemporalEvolution
+@everywhere include("TemporalEvolution.jl")
 include("uni.jl")
 include("types.jl")
 

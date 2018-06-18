@@ -4,8 +4,12 @@
 #  For now, there is no temporal variation in the environment, and only a single subpopulation (and thus no horizontal transmission).
 # For each population
 using DataFrames, CSV
-include("dataframe_io.jl")
+include("dataframe_io.jl")   # load functions to read and write dataframes
+global cutoff = 980
 
+# For each pop size N and mutStddev, find the maximum number of attributes where the generational lifetime is at least cutoff.
+#    Note that the max possible generational lifetime is ngens (as set in the parameter file that generated the input CSV file).
+# cutoff should be set to be slightly less than ngens in the input .csv file.  (Set to 980 below assuming ngens==1000.)
 function find_max_attr( df::DataFrame, cutoff::Number  )
   N_list = unique( df[:,:N] )
   num_attributes_list = unique( df[:,:num_attributes] )
@@ -56,11 +60,11 @@ end
 
 fname = ARGS[1]
 # use julia v. 5 to avoid depwarn messages from readtabltddev = 
-#df = readtable(fname, makefactors=true, allowcomments=true)
 df = read_dataframe( fname )
-println("size: ",size(df))
-delete!(df,:move_update_lifetime)
-delete!(df,:gen_limit_reached_count)
+println("dataframe size: ",size(df))
+# delete columns that are not used
+delete!(df,:move_update_lifetime)  # delete unused column
+delete!(df,:gen_limit_reached_count)  # delete unused column
 resultdf = find_max_attr( df, 980 )
 println(resultdf)
 write_dataframe(fname,resultdf,"$(fname[1:end-4]).cmplx.csv")

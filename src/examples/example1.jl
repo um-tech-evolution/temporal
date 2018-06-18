@@ -1,9 +1,9 @@
 # Configuration for running temporal simulation
 #=
 Recommended command line to run:
->  julia -L TemporalEvolution.jl run.jl configs/example1
+>  julia run.jl configs/example1
 or
->  julia -p 4 -L TemporalEvolution.jl run.jl configs/example1
+>  julia -p 4 run.jl configs/example1
 =#
 simtype = 2   # run  repeat_evolve instead of repeat_evolve_until_dead
 num_trials = 3
