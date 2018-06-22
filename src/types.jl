@@ -43,18 +43,18 @@ global temporal_param_fields = [
   :num_trials  # number of trials
   :N        # Meta-population size
   :num_subpops                     # Number of subpopulations
-  :num_attributes        # number attributes for quantitative representation
-  :ngens       # Generations after burn-in
-  :num_emigrants                    # number emigrants
-  :mutStddev
-  :move_range
-  :move_time_interval
-  :horiz_select
-  :horiz_mutate
-  :probHSelect
+  :num_attributes         # number attributes for quantitative representation
+  :ngens                  # Generations after burn-in
+  :num_emigrants          # number emigrants in horizontal transmission between subpopulations
+  :mutStddev              # Float.  Standard deviation of normal random deviate of copy error
+  :move_range             # Float.  Add a uniform random number to each attribute ideal to move optima
+  :move_time_interval  # Integer.  Number of generations between moving ideals
+  :horiz_select      # Boolean.  If true, use proportional selection to select members of source pop to emigrate
+  :horiz_mutate      # Boolean.  If true, mutate attributes as part of horizontal transmission
+  :probHSelect       # Float.  Probability of selecting the best subpopulation as the source of emigration
   :uniform_start
   :ideal_init  # should be 0.5 for additive error, 1.0 for multiplicative error
-  :minFit
+  :minFit      # Float.  minimum fitness.  When an individual has this fitness, it has "lost" the ideal
   :linfit_slope  # 1.0 for most runs
   :topology   # one of circular, ring, moore, vonneumann, global
   :burn_in    # generations of burn_in as a multiple of N

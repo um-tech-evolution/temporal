@@ -124,22 +124,20 @@ function build_pmap_list(  param_dict::Dict{Symbol,Any} )
   n = length(array_field_list)
   plist_lengths = [ length( param_dict[k] ) for k in array_field_list ]
   #println("plist_lengths: ",plist_lengths)
-  pli = fill(1,n)
-  max_iterations = 1000
+  pli = fill(1,n)    # pli is a vector of indices for the array fields which is incremented lexigraplically
+  max_pmap_list_length = 50000   # maximum number of elements in pmap_list
   count = 0
   result_dict = deepcopy(param_dict)
   for j = 1:n
     result_dict[array_field_list[j]] = param_dict[array_field_list[j]][pli[j]]
   end
-  #println("result_dict: ",result_dict)
   Base.push!( result, result_dict )
   i = 1
-  while count < max_iterations
+  while count < max_pmap_list_length
     i = 1
     while i <= n && pli[i] == plist_lengths[i]
       i += 1
     end
-    #println("after while: i: ",i,"  pli: ",pli)
     if i <= n
       pli[i] += 1
       for j = 1:(i-1)
@@ -148,15 +146,16 @@ function build_pmap_list(  param_dict::Dict{Symbol,Any} )
     else
       break
     end
-    #println("pli: ",pli)
     result_dict = deepcopy(result_dict)
     for j = 1:n
       result_dict[array_field_list[j]] = param_dict[array_field_list[j]][pli[j]]
     end
-    #println("result_dict: ",result_dict)
     #println("pd: ",[ param_dict[array_field_list[j]][pli[j]] for j = 1:n]  )
     Base.push!( result, result_dict )
     count += 1
+  end
+  if count == max_pmap_list_length
+    error("error:  count == max_pmap_list_length  in uni.jl.  Increase max_pmap_list_length.")
   end
   result
 end

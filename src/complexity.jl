@@ -5,12 +5,14 @@
 # For each population
 using DataFrames, CSV
 include("dataframe_io.jl")   # load functions to read and write dataframes
+# cutoff should be set to be slightly less than ngens in the input .csv file.  
 global cutoff = 980
 
 # For each pop size N and mutStddev, find the maximum number of attributes where the generational lifetime is at least cutoff.
-#    Note that the max possible generational lifetime is ngens (as set in the parameter file that generated the input CSV file).
-# cutoff should be set to be slightly less than ngens in the input .csv file.  (Set to 980 below assuming ngens==1000.)
-function find_max_attr( df::DataFrame, cutoff::Number  )
+#    Note that the max possible lifetime is ngens (as set in the parameter file that generated the input CSV file).
+# The options for lifetime_field are :generational_lifetime and :move_update_lifetime
+function find_max_attr( df::DataFrame, cutoff::Number, lifetime_field::Symbol)
+  println("lifetime_field: ",lifetime_field)
   N_list = unique( df[:,:N] )
   num_attributes_list = unique( df[:,:num_attributes] )
   mut_stddev_list = unique( df[:,:mutStddev] )
@@ -29,7 +31,7 @@ function find_max_attr( df::DataFrame, cutoff::Number  )
       #  println("df_N; ",df_N)
       #end
       
-      j = findfirst(x->x<=cutoff,df_N[:,:generational_lifetime])
+      j = findfirst(x->x<=cutoff,df_N[:,lifetime_field])
       if j > 1
         result[k] = num_attributes_list[j-1] 
       elseif j==1
@@ -41,8 +43,8 @@ function find_max_attr( df::DataFrame, cutoff::Number  )
       end
       #=
       for i = num_rows:-1:1
-        #println("i: ",i,"  df_N[i,:generational_lifetime]: ",df_N[i,:generational_lifetime])
-        if df_N[i,:generational_lifetime] > cutoff
+        #println("i: ",i,"  df_N[i,lifetime_field]: ",df_N[i,lifetime_field])
+        if df_N[i,lifetime_field] > cutoff
           result[k] = num_attributes_list[i]
           println("  result[",k,"]: ",result[k])
           break
@@ -59,13 +61,35 @@ end
 
 
 fname = ARGS[1]
+println("length(ARGS): ",length(ARGS))
+if length(ARGS) >= 2
+  println("code: ",ARGS[2][1] )
+end
+if length(ARGS) >= 2 && ARGS[2][1] == 'g'
+    lifetime_field = :generational_lifetime
+  elseif length(ARGS) >= 2 && ARGS[2][1] == 'm'
+    lifetime_field = :move_update_lifetime
+  else
+    println("Usage:  julia complexity.jl <csv filename> <lifetime code>")
+    println("  where <lifetime code> should be \"g\" for generational, \"m\" for move_update.")
+    quit()
+end
+if !(lifetime_field == :generational_lifetime || lifetime_field == :move_update_lifetime)
+  error("lifetime_field must be either generational_lifetime or move_update_lifetime")
+end
+println("lifetime_field: ",lifetime_field)
+println("typeof(lifetime_field): ",typeof(lifetime_field))
 # use julia v. 5 to avoid depwarn messages from readtabltddev = 
 df = read_dataframe( fname )
 println("dataframe size: ",size(df))
 # delete columns that are not used
-delete!(df,:move_update_lifetime)  # delete unused column
+#delete!(df,:move_update_lifetime)  # delete unused column
 delete!(df,:gen_limit_reached_count)  # delete unused column
-resultdf = find_max_attr( df, 980 )
+resultdf = find_max_attr( df, cutoff, lifetime_field )
 println(resultdf)
-write_dataframe(fname,resultdf,"$(fname[1:end-4]).cmplx.csv")
+if lifetime_field == :generational_lifetime 
+  write_dataframe(fname,resultdf,"$(fname[1:end-4]).cmplx_gen.csv")
+elseif lifetime_field == :move_update_lifetime
+  write_dataframe(fname,resultdf,"$(fname[1:end-4]).cmplx_mu.csv")
+end
 
