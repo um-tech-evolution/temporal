@@ -38,7 +38,7 @@ type trial_innovation_counts
 end
 
 global temporal_param_fields = [
-  :simtype    # run  repeat_evolve instead of repeat_evolve_until_dead
+  :simtype    # if simtype==2, run  repeat_evolve. if symtype==1, run repeat_evolve_until_dead for length of retention.
   :simname     # name of configuration file (with .jl extension) and of output file (with .csv extenseion)
   :num_trials  # number of trials
   :N        # Meta-population size

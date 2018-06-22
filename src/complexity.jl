@@ -78,12 +78,9 @@ if !(lifetime_field == :generational_lifetime || lifetime_field == :move_update_
   error("lifetime_field must be either generational_lifetime or move_update_lifetime")
 end
 println("lifetime_field: ",lifetime_field)
-println("typeof(lifetime_field): ",typeof(lifetime_field))
-# use julia v. 5 to avoid depwarn messages from readtabltddev = 
 df = read_dataframe( fname )
-println("dataframe size: ",size(df))
-# delete columns that are not used
-#delete!(df,:move_update_lifetime)  # delete unused column
+println("read dataframe from file: ",fname," of size: ",size(df))
+# delete column that is not used
 delete!(df,:gen_limit_reached_count)  # delete unused column
 resultdf = find_max_attr( df, cutoff, lifetime_field )
 println(resultdf)
