@@ -33,7 +33,7 @@ See types.jl for the definition of param_type and result_type, and for the defin
 """
 function evolve_until_dead( paramd::param_type, resultd::result_type )
   #println("function evolve_until_dead")  ###
-  #println("num_subpops: ",paramd[:num_subpops],"  num_emmigrants: ",paramd[:num_emigrants],"  horiz_sel: ",paramd[:horiz_select],"  mutStddev: ",paramd[:mutStddev],"  topology: ",paramd[:topology])
+  #println("num_subpops: ",paramd[:num_subpops],"  num_emigrants: ",paramd[:num_emigrants],"  horiz_sel: ",paramd[:horiz_select],"  mutStddev: ",paramd[:mutStddev],"  topology: ",paramd[:topology])
   #println("burn_in: ",paramd[:burn_in])
   int_burn_in = Int(round(paramd[:burn_in]*paramd[:N]))
   id = [0]

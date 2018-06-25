@@ -16,15 +16,23 @@ export horiz_transfer, horiz_transfer_circular!, new_emigrants_funct, add_emigra
 
 function horiz_transfer( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
       id::Vector{Int64}, generation::Int64  )
-  if tp[:topology] == "none" || tp[:num_subpops] == 1 || tp[:num_emigrants] == 0
+  emigration = tp[:topology] != "none" && tp[:num_subpops] != 1 && (tp[:num_emigrants] > 0 || (tp[:migration_rate] != :null && tp[:migration_rate] > 0.0))
+  #println("emigration: ",emigration)
+  # Set num_emigrants from migration_rate
+  if ! emigration
     return
-  elseif tp[:num_emigrants] > 0 && tp[:topology]=="circular"
+  end
+  # Check that tp[:num_emigrants] and tp[:migration_rate] are not both nonzero.
+  if tp[:migration_rate] != :null && tp[:migration_rate] != 0.0 && tp[:num_emigrants] > 0 
+    error("parameters num_emigrants and migration_rate cannot not both be nonzero.")
+  end
+  if tp[:topology]=="circular"   # Circular is not "by fitness"
     horiz_transfer_circular!( meta_pop, tp, vt, ideal, id, generation, neg_select=tp[:horiz_select], emigrant_select=tp[:horiz_select] )
-  elseif  tp[:num_emigrants] > 0 && tp[:topology]=="ring" || tp[:topology]=="global"
+  elseif  tp[:topology]=="ring" || tp[:topology]=="global"
     horiz_transfer_by_fitness!( meta_pop, tp, vt, ideal, mmeans, id, neg_select=tp[:horiz_select], topology=tp[:topology], emigrant_select=tp[:horiz_select] )
-  elseif  tp[:num_subpops] >= 9 && tp[:num_emigrants] > 0 && (tp[:topology]=="vonneumann" || tp[:topology]=="moore")
+  elseif  tp[:num_subpops] >= 9 && (tp[:topology]=="vonneumann" || tp[:topology]=="moore")
     horiz_transfer_by_fitness!( meta_pop, tp, vt, ideal, mmeans, id, neg_select=tp[:horiz_select], topology=tp[:topology], emigrant_select=tp[:horiz_select] )
-  elseif tp[:num_subpops] > 1 && tp[:topology]!="none" && tp[:num_emigrants] > 0
+  elseif tp[:num_subpops] > 1 && tp[:topology]!="none" 
     println("nsbp: ",tp[:num_subpops],"  topo: ",tp[:topology],"  ne: ",tp[:num_emigrants],"  test: ",(tp[:num_subpops] >= 9 && tp[:num_emigrants] > 0 && (tp[:topology]=="vonneumann" || tp[:topology]=="moore")))
     println("Warning! no horizontal transfer done with tp[:num_subpops]=",tp[:num_subpops]," and topology=",tp[:topology])
   end
@@ -84,7 +92,7 @@ function horiz_transfer_circular!(  meta_pop::PopList, tp::param_type, vt::Dict{
 end
 
 @doc """ function horiz_transfer_by_fitness!( )
-  Do horizontal transfer where the source subpopulation has lower fitness than the destination.
+  Do horizontal transfer where, with probability tp[:probHSelect], the source subpopulation has lower fitness than the destination.
   The source population will be a neighbor of the destination population in the topology.
   Options for topology are:
     "ring":    neighbors are determined by subpop index with wraparound (as in horis_transfer_circular)
@@ -173,20 +181,28 @@ end
   Choose emigrants from source population 
   Chosen using fitness proportional selection if emigrant_select==true
   Chosen randonly if emigrant_select==false
+  Emigrants are mutated if tp[:horiz_mutate] is true
 """
 function new_emigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, source_subpop_list::Vector{Int64}, 
     ideal::Vector{Float64}, id::Vector{Int64}; emigrant_select::Bool=true )
   subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
   new_emigrants = Population[ Population() for j = 1:tp[:num_subpops] ]  # new_emigrants[j] is the list of immigrants into subpop j
   for j = 1:tp[:num_subpops]
-    emigrants = Vector{Int64}()  # emigrants is the list of individuals that will emmigrate from subpop k
+    if tp[:num_emigrants] > 0
+      num_emigrants = tp[:num_emigrants]
+    elseif tp[:migration_rate] > 0  # Set num_emigrants from tp[:migration_rate] and subpop_size
+      d = Distributions.Poisson( tp[:migration_rate]*subpop_size )   # d is a Poisson distribution with mean tp[:migration_rate]*subpop_size]
+      num_emigrants = rand(d)
+    else
+      error("one of tp[:num_emigrants] or tp[:migration_rate] should be positive.")
+    end
+    #println("new_emigrants_funct: num_emigrants: ",num_emigrants)
+    emigrants = Vector{Int64}()  # emigrants is the list of individuals that will emmigrate from subpop j
     if emigrant_select
       #Base.push!( emigrants, propsel( meta_pop[neighborlist[j]], tp[:num_emigrants], vt ) )
-      #emigrants = propsel( meta_pop[neighborlist[j]], tp[:num_emigrants], vt ) 
-      emigrants = propsel( meta_pop[source_subpop_list[j]], tp[:num_emigrants], vt ) 
+      emigrants = propsel( meta_pop[source_subpop_list[j]], num_emigrants, vt ) 
     else
-      s = StatsBase.sample(collect(1:subpop_size),tp[:num_emigrants],replace=false,ordered=true) # random sample of indices
-      #Base.push!( emigrants, meta_pop[source_subpop_list[j]][s] )   # Neutral
+      s = StatsBase.sample(collect(1:subpop_size),num_emigrants,replace=false,ordered=true) # random sample of indices
       emigrants = meta_pop[source_subpop_list[j]][s]    # Neutral
     end
     #println("j: ",j,"  emigrants: ",emigrants)
@@ -214,7 +230,7 @@ function new_emigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64,
   new_emigrants
 end
 
-@doc """ add_emmitrants()
+@doc """ add_emigrants()
 For each j, removes length(new_emigrants[j]) individuals from subpop[j] and replaces them with new_emigrants[j].
 If neg_select==true, the the individuals to be removed are chosen by reverse proportional selection, otherwise randomly.
 """
@@ -222,14 +238,14 @@ function add_emigrants( meta_pop::PopList, tp::param_type, vt::Dict{Int64,varian
       neg_select::Bool=true )
   subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
   for j = 1:tp[:num_subpops]
-    #println("add emigrants j: ",j)
+    #println("add emigrants subpop j: ",j,"  new_emigrants[j]: ",new_emigrants[j])
     if length(new_emigrants[j]) > 0 
       pop_after_deletion = Population[]
       #println("j: ",j,"  j%tp[:num_subpops]+1: ",j%tp[:num_subpops]+1,"  (j+tp[:num_subpops]-2)%tp[:num_subpops]+1: ",(j+tp[:num_subpops]-2)%tp[:num_subpops]+1)
       if neg_select  # use reverse proportional selection to delete elements by negative fitness
-        pop_after_deletion = reverse_propsel(meta_pop[j],tp[:num_emigrants],vt)
+        pop_after_deletion = reverse_propsel(meta_pop[j],length(new_emigrants[j]),vt)
       else  # delete random elements to delete
-        s = StatsBase.sample(collect(1:subpop_size),subpop_size-tp[:num_emigrants],replace=false,ordered=true) # random sample of indices
+        s = StatsBase.sample(collect(1:subpop_size),subpop_size-length(new_emigrants[j]),replace=false,ordered=true) # random sample of indices
         pop_after_deletion = meta_pop[j][s]
         #println("length(pop_after_deletion): ",length(pop_after_deletion))
         #println("j: ",j,"  pop_after_deletion: ",pop_after_deletion)

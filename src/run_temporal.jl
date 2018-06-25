@@ -12,7 +12,7 @@ function print_temporal_params( tp::param_type )
   println("num_trials: ", tp[:num_trials])
   println("N: ", tp[:N])
   println("num_subpops: ", tp[:num_subpops])
-  println("num_emmigrants: ", tp[:num_emigrants])
+  println("num_emigrants: ", tp[:num_emigrants])
   println("num_attributes: ", tp[:num_attributes])
   println("ngens: ", tp[:ngens])
   println("burn_in: ", tp[:burn_in])
@@ -46,8 +46,9 @@ function print_temporal_results( tr::result_type )
 end
 
 function writeheader( stream::IO, paramd::param_type, resultd::result_type )
-  #global temporal_param_fields
+  seed = try seed = Main.seed catch -1 end  # assign local variable seed to the Main module seed if defined, otherwise to -1 
   param_strings = String["# $(string(Dates.today()))"]
+  Base.push!(param_strings,(seed!==-1 ? "# random number seed: $(seed)": "# no random number seed defined"))
   for k in temporal_param_fields
     if paramd[k] != :null
       Base.push!( param_strings, "# $(String(k))=$(paramd[k])")

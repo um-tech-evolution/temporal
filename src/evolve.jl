@@ -11,7 +11,7 @@ Runs evolve()  tr[:num_subpops] times, and averages the results.
 See types.jl for the definition of param_type and result_type, and see types.jl for legal keys for this type.
 """
 function repeat_evolve( tp::param_type, tr::result_type )  # tp is parameter dictionary, tr is results dictionary
-  #println("rep_evolve: num_subpops: ",tp[:num_subpops],"  ngens: ",tp[:ngens],"  num_emmigrants: ",tp[:ne],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],
+  #println("rep_evolve: num_subpops: ",tp[:num_subpops],"  ngens: ",tp[:ngens],"  num_emigrants: ",tp[:ne],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],
   #      "  topology: ",tp[:topology],"  num_attributes: ",tp[:num_attributes])
   if tp[:num_trials] == 1
     return evolve( tp, tr )
@@ -73,7 +73,7 @@ See types.jl for the definition of param_type and result_type, and see run.jl fo
 """
 function evolve( tp::param_type, tr::result_type ) # tp is parameter dictionary, tr is results dictionary
   #println("function evolve") ###
-  #println("num_subpops: ",tp[:num_subpops],"  num_emmigrants: ",tp[:num_emigrants],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],"  topology: ",tp[:topology])
+  #println("num_subpops: ",tp[:num_subpops],"  num_emigrants: ",tp[:num_emigrants],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],"  topology: ",tp[:topology])
   int_burn_in = Int(round(tp[:burn_in]*tp[:N]))
   #println("int_burn_in: ",int_burn_in)
   id = [0]
@@ -294,8 +294,8 @@ end
 
 
 #=
-run_evolve(N,num_attributes,num_subpops, ngens,mutStddev,num_emmigrants,move_range,move_time_interval,minFit,uniform_start,minFit=minFit)
-tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutStddev, num_emmigrants, move_range, move_time_interval,
+run_evolve(N,num_attributes,num_subpops, ngens,mutStddev,num_emigrants,move_range,move_time_interval,minFit,uniform_start,minFit=minFit)
+tr = temporal_result( T, N, num_attributes, num_subpops, ngens, mutStddev, num_emigrants, move_range, move_time_interval,
           minFit, horiz_select, minFit, uniform_start=uniform_start,  burn_in=burn_in )
 function ev_init()
   #include("types.jl")
@@ -306,7 +306,7 @@ function ev_init()
   global num_subpops = 8
   global num_attributes = 4
   global ngens = 200
-  global num_emmigrants = 2
+  global num_emigrants = 2
   global mutStddev = 0.04
   global move_range = 0.1
   global move_time_interval = 5
