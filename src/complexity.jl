@@ -61,9 +61,8 @@ end
 
 
 fname = ARGS[1]
-println("length(ARGS): ",length(ARGS))
-if length(ARGS) >= 2
-  println("code: ",ARGS[2][1] )
+if fname[end-3:end] != ".csv"
+  fname = "$(fname).csv"
 end
 if length(ARGS) >= 2 && ARGS[2][1] == 'g'
     lifetime_field = :generational_lifetime
@@ -77,7 +76,6 @@ end
 if !(lifetime_field == :generational_lifetime || lifetime_field == :move_update_lifetime)
   error("lifetime_field must be either generational_lifetime or move_update_lifetime")
 end
-println("lifetime_field: ",lifetime_field)
 df = read_dataframe( fname )
 println("read dataframe from file: ",fname," of size: ",size(df))
 # delete column that is not used

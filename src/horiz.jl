@@ -192,7 +192,7 @@ function new_emigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64,
       num_emigrants = tp[:num_emigrants]
     elseif tp[:migration_rate] > 0  # Set num_emigrants from tp[:migration_rate] and subpop_size
       d = Distributions.Poisson( tp[:migration_rate]*subpop_size )   # d is a Poisson distribution with mean tp[:migration_rate]*subpop_size]
-      num_emigrants = rand(d)
+      num_emigrants = min(subpop_size,rand(d))
     else
       error("one of tp[:num_emigrants] or tp[:migration_rate] should be positive.")
     end

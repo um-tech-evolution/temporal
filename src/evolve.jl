@@ -1,5 +1,5 @@
 export temporal_result, repeat_evolve, evolve, mutate_meta_pop!, fmeans, means_vars, init_meta_pop,
-  count_individuals_below_minfit, count_subpops_below_minfit
+  count_individuals_at_minFit, count_subpops_at_minFit
     
 #include("types.jl")
 #include("propsel.jl")
@@ -147,7 +147,7 @@ function evolve( tp::param_type, tr::result_type ) # tp is parameter dictionary,
       att_vars = attr_vars( meta_pop, vt )
       cumm_attr_vars += att_vars
       #println("   astdev: ",sqrt(att_vars))
-      count_subpops_below_minFit = count_subpops_below_minfit( meta_pop, vt, tp[:minFit] )
+      count_subpops_below_minFit = count_subpops_at_minFit( meta_pop, vt, tp[:minFit] )
       count_gens_with_all_subpops_below_minFit = (count_subpops_below_minFit == tp[:num_subpops]) ? 1 : 0
       #count_gens_with_all_subpops_below_minFit += count_subpops_below_minFit 
       ##print("  count_subpops_below_minFit: ",count_subpops_below_minFit)
@@ -173,8 +173,8 @@ function evolve( tp::param_type, tr::result_type ) # tp is parameter dictionary,
   #      "  innov_counts.neg:",tr[:deleterious_mutations_per_gen_trial], "  innov_counts.half_neg:",tr[:half_deleterious_mutations_per_gen_trial])
   tr[:fitness_variance] = mean(cumm_vars/tp[:ngens])
   tr[:attribute_variance] = mean(cumm_attr_vars/tp[:ngens])
-  tr[:stddev_fitness] = sqrt(mean(cumm_vars/tp[:ngens]))
-  tr[:stddev_attributes] = sqrt(mean(cumm_attr_vars/tp[:ngens]))
+  tr[:stddev_fitness] = sqrt(tr[:fitness_variance])
+  tr[:stddev_attributes] = sqrt(tr[:attribute_variance])
   #println("fitness variance: ", tr[:fitness_variance],"  attribute variance: ",  tr[:attribute_variance])
   return tr
 end
@@ -261,10 +261,10 @@ function attr_vars( subpops::PopList, variant_table::Dict{Int64,variant_type} )
   return ave_vars
 end
 
-@doc """ count_individuals_below_minfit()
+@doc """ count_individuals_at_minFit()
   Counts the number of individuals in a subpop whose fitness is less than or equal to minFit
 """
-function count_individuals_below_minfit( subpop::Population, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function count_individuals_at_minFit( subpop::Population, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
   count = 0
   for v in subpop
     if variant_table[v].fitness <= minFit + 10.0*eps()
@@ -276,19 +276,19 @@ function count_individuals_below_minfit( subpop::Population, variant_table::Dict
   return count
 end
 
-@doc """ function count_subpops_below_minfit( )
+@doc """ function count_subpops_at_minFit( )
   Counts the number of subpops where the fitness of all individuals is less than or equal to minFit
 """
-function count_subpops_below_minfit( meta_pop::PopList, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function count_subpops_at_minFit( meta_pop::PopList, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   count = 0
   for j = 1:num_subpops
-    if count_individuals_below_minfit( meta_pop[j], variant_table, minFit ) == subpop_size
+    if count_individuals_at_minFit( meta_pop[j], variant_table, minFit ) == subpop_size
       count += 1
     end
   end
-  ##println("count_subpops_below_minfit: ",count,"  subpop_size: ",subpop_size,"  minFit: ",minFit)
+  ##println("count_subpops_at_minFit: ",count,"  subpop_size: ",subpop_size,"  minFit: ",minFit)
   return count
 end
 

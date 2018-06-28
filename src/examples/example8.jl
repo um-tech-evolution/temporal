@@ -12,6 +12,7 @@ num_subpops=[1]                     # Number of subpopulations
 num_attributes = 1        # number attributes for quantitative representation
 ngens = 3       # Generations after burn-in
 num_emigrants = 0                    # number emigrants
+migration_rate = 0.05
 mutStddev = 0.01
 move_range=0.1
 move_time_interval=0

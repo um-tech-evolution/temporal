@@ -14,6 +14,7 @@ num_attributes = [3]        # number attributes for quantitative representation
 ngens = 4       # Generations after burn-in
 #num_emigrants = 1                    # number emmigrants
 num_emigrants = [1]                    # number emmigrants
+migration_rate = 0.0
 #mutStddev = 0.02
 mutStddev = [0.01]
 move_range=0.05

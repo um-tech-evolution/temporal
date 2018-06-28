@@ -16,8 +16,8 @@ end
 function run_trials( paramd::TemporalEvolution.param_type, resultd::TemporalEvolution.result_type )
   stream = open("$(paramd[:simname]).csv","w")
   pmap_list = build_pmap_list( paramd )
-  #resultd_list = pmap(x->run_evolution(x,resultd), pmap_list )     # comment out for debugging: error messages are simpler
-  resultd_list = map(x->run_evolution(x,resultd), pmap_list )     # uncomment for debugging: error messages are simpler
+  resultd_list = pmap(x->run_evolution(x,resultd), pmap_list )     # comment out for debugging: error messages are simpler
+  #resultd_list = map(x->run_evolution(x,resultd), pmap_list )     # uncomment for debugging: error messages are simpler
   r = resultd_list[1]
   if paramd[:simtype] == 2
     #println("fitness_mean: ",r[:fitness_mean],"  attr variance: ",r[:attribute_variance])
