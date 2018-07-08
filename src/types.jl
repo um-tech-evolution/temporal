@@ -1,5 +1,5 @@
-export variant_type, fitness_location_type, Population, PopList, temporal_result_type, subpop_properties_type, variant_type, 
-    fitness_location_type, subpop_properties, generational_innovation_counts
+export variant_type, fitness_location_type, Population, PopList, temporal_result_type, subpop_properties_type, param_type,
+    result_type, fitness_location_type, subpop_properties, generational_innovation_counts
 using Distributions
 using StatsBase
 const Population =  Array{Int64,1}

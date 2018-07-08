@@ -4,6 +4,8 @@
 # julia> read_parameter_file("param",paramd)        # adds parameters from param file into dictionary
 # julia> build_pmap_list( paramd )                  # builds list of dictionaries for each trial
 
+export temporal_param_fields, init_dictionary, read_parameter_file, print_meta_pop, build_pmap_list, print_meta_pop_attributes
+
 # Parameter fields for temporal 
 #=  moved to types.jl
 const temporal_param_fields = [ 
@@ -57,6 +59,45 @@ function init_dictionary( field_list )
     dict[f] = :null
   end
   dict
+end
+
+function print_meta_pop( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,variant_type} )
+  #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
+  for  j = 1:paramd[:num_subpops]
+    print(" ")
+    #=
+    for k in meta_pop[j]
+      @printf("%2d %5.3f ",k,vt[k].fitness)
+    end
+    =#
+    for k in meta_pop[j]
+      above_minFit = vt[k].fitness > paramd[:minFit] ? 1 : 0
+      print( above_minFit )
+    end
+    #print(subpop_alive(meta_pop[j],vt,paramd[:minFit]),"] ")
+  end
+  println()
+end
+
+function print_meta_pop_attributes( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,variant_type} )
+  println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
+  for  j = 1:paramd[:num_subpops]
+    print("[")
+    for k in meta_pop[j]
+      @printf("[%d %5.3f ",k,vt[k].fitness)
+      attr = vt[k].attributes
+      print(attr)
+      #=
+      for a in attr
+        @printf("%5.3f ",a)
+      end
+      =#
+      print("]")
+    end
+    println("]")
+    #print(subpop_alive(meta_pop[j],vt,paramd[:minFit]),"] ")
+  end
+  println()
 end
 
 

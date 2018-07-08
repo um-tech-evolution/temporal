@@ -1,12 +1,12 @@
 # Convert to new method of computing generational and move-update lifetimes  6/28/18
 # This version still contains much debugging code and commented out code for previous method
-export repeat_evolve_until_dead, evolve_until_dead
+export repeat_evolve_until_dead, evolve_until_dead, subpop_alive
 
 @doc """ function repeat_evolve_until_dead()
   Run repeated trails of evolve_until_dead()
 """
 function repeat_evolve_until_dead( paramd::param_type, resultd::result_type )
-  println("repeat_evolve_until_dead: N: ",paramd[:N],"  num_attributes: ",paramd[:num_attributes]," num_subpops: ",paramd[:num_subpops],"  num_emigrants: ",paramd[:num_emigrants])
+  println("repeat_evolve_until_dead: N: ",paramd[:N],"  num_attributes: ",paramd[:num_attributes]," num_subpops: ",paramd[:num_subpops],"  mutStddev: ",paramd[:mutStddev])
   if paramd[:num_trials] == 1
     return evolve_until_dead( paramd, resultd )
   end
@@ -19,6 +19,7 @@ function repeat_evolve_until_dead( paramd::param_type, resultd::result_type )
     Base.push!( resultd_list, deepcopy(resultd) )   # TODO:  what is this line doing?
     sum_generational_lifetime += resultd[:generational_lifetime] 
     sum_move_update_lifetime += resultd[:move_update_lifetime] 
+    #println("repeat: mul:", resultd[:move_update_lifetime])
     sum_gen_limit_count += resultd[:gen_limit_reached_count]
   end
   resultd[:generational_lifetime] = sum_generational_lifetime/paramd[:num_trials]
@@ -36,7 +37,7 @@ See types.jl for the definition of param_type and result_type, and for the defin
 function evolve_until_dead( paramd::param_type, resultd::result_type )
   #gen_lifetime = 0
   #mu_lifetime = 0
-  metapop_dead_flag = true   # used to test if all metapops since the last move updata have been dead
+  metapop_dead_flag = false    # used to test if all metapops since the last move updata have been dead
   gens_since_last_move_update = 0  # count generations since last move update
   #println("function evolve_until_dead")  ###
   #println("num_subpops: ",paramd[:num_subpops],"  num_emigrants: ",paramd[:num_emigrants],"  horiz_sel: ",paramd[:horiz_select],"  mutStddev: ",paramd[:mutStddev],"  topology: ",paramd[:topology])
@@ -62,16 +63,17 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
   #while (any(sbp.generational_subpop_alive) || any(sbp.prev_subpop_alive)) && g < paramd[:ngens]+int_burn_in
   while (resultd[:generational_lifetime]==0 || resultd[:move_update_lifetime]==0 ) && g < paramd[:ngens]+int_burn_in
     gens_since_last_move_update += 1
-    if paramd[:move_time_interval] > 0 && g > int_burn_in && g % paramd[:move_time_interval] == 0
-      ###println("move update:  metapop_dead_flag: ",metapop_dead_flag,"  gens_since_last_move_update: ",gens_since_last_move_update)
+    if paramd[:move_time_interval] > 0 && g > int_burn_in+1 && g % paramd[:move_time_interval] == 1
+      #println("move update:  metapop_dead_flag: ",metapop_dead_flag,"  gens_since_last_move_update: ",gens_since_last_move_update)
       # Check whether metapop has been dead for all generations since the last move update
       if metapop_dead_flag && resultd[:move_update_lifetime] == 0 && gens_since_last_move_update == paramd[:move_time_interval] 
         #mu_lifetime = g
         resultd[:move_update_lifetime] = g
-        ###println(":move_update_lifetime set to ",g)
+        #println(":move_update_lifetime set to ",g)
+        break
       end
       move_optima( ideal, paramd[:move_range] )
-      ###println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
+      #println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
       metapop_dead_flag = true
       #println(" g: ",g,"  #optimum just  moved   means: ", fmeans( meta_pop, vt ))
       subpop_alive_opt_move_update( sbp, meta_pop,  vt, paramd[:minFit] )
@@ -89,26 +91,17 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
     mmeans, vvars = means_vars( meta_pop, vt )
     #println("  g: ",g," after horiz: ",mmeans)
     #println("vt: ",vt)
-    ###print("g:",g,": ")
-    #=
-    for  j = 1:paramd[:num_subpops]
-      print("[")
-      for k in meta_pop[j]
-        above_minFit = vt[k].fitness > paramd[:minFit] ? 1 : 0
-        print( above_minFit, " ")
-      end
-      print(subpop_alive(meta_pop[j],vt,paramd[:minFit]),"] ")
-    end
-    =#
+    #print("g:",g,": ")
+    #print_meta_pop( paramd, meta_pop, vt )
     if !metapop_alive(meta_pop,vt,paramd[:minFit]) && resultd[:generational_lifetime] == 0
       #gen_lifetime = g
       resultd[:generational_lifetime] = g
-      ###println(":generational_lifetime set to ",g)
+      #println(":generational_lifetime set to ",g)
     end
     if metapop_alive(meta_pop,vt,paramd[:minFit]) 
       metapop_dead_flag = false
     end
-    ###println(metapop_alive(meta_pop,vt,paramd[:minFit]),"  dead_flag: ",metapop_dead_flag)
+    #println("alive: ",metapop_alive(meta_pop,vt,paramd[:minFit]),"  dead_flag: ",metapop_dead_flag)
     #=  old update method
     subpop_alive_gen_update( sbp, meta_pop, vt, paramd[:minFit] )
     #println("  g: ",g,"  sbp.generational_subpop_alive: ",sbp.generational_subpop_alive )
@@ -131,17 +124,20 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
     if resultd[:generational_lifetime] > 0
       #println("all subpops died at generation ",resultd[:generational_lifetime],"  (generational update).")
     else
-      println("g: ",g," All subpops died (single generation update).  generational_lifetime set")
+      #println("g: ",g," All subpops died (single generation update).  generational_lifetime set")
       resultd[:generational_lifetime] = g
     end
     if resultd[:move_update_lifetime] > 0
       #println("all subpops died at generation ",resultd[:move_update_lifetime],"(move optimum update).")
     else
-      println("g: ",g," All subpops died (move optimum update).  move_update_lifetime set")
+      #println("g: ",g," All subpops died (move optimum update).  move_update_lifetime set")
       resultd[:move_update_lifetime] = g
     end
   end
   =#
+  if resultd[:move_update_lifetime]!=0
+    #println("loop terminated with move update lifetime: ",resultd[:move_update_lifetime])
+  end
   if resultd[:generational_lifetime] == 0     
     #gen_lifetime = g
     resultd[:generational_lifetime] = g
@@ -151,10 +147,8 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
     #mu_lifetime = g
     resultd[:move_update_lifetime] = g
   end
-  #println("generational lifetime: ",resultd[:generational_lifetime],"  gen_lifetime: ",gen_lifetime)
-  ###println("generational lifetime: ",resultd[:generational_lifetime])
-  #println("move update lifetime:  ",resultd[:move_update_lifetime],"  mu_lifetime: ",mu_lifetime)
-  ###println("move update lifetime:  ",resultd[:move_update_lifetime])
+  #println("generational lifetime: ",resultd[:generational_lifetime])
+  #println("move update lifetime:  ",resultd[:move_update_lifetime])
   return resultd
 end
 

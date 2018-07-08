@@ -79,7 +79,7 @@ end
 df = read_dataframe( fname )
 println("read dataframe from file: ",fname," of size: ",size(df))
 # delete column that is not used
-delete!(df,:gen_limit_reached_count)  # delete unused column
+#delete!(df,:gen_limit_reached_count)  # delete unused column
 resultdf = find_max_attr( df, cutoff, lifetime_field )
 println(resultdf)
 if lifetime_field == :generational_lifetime 

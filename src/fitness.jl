@@ -41,7 +41,6 @@ function sum_distance( attributes::Vector{Float64}, ideal::Vector{Float64}, minF
     sum += dis
   end
   #println("fitness: attributes: ",attributes,"  ideal: ",ideal," fit: ",sum,"  count: ",count)
-  #return sum, count
   return sum 
 end
 
@@ -53,7 +52,7 @@ max_distance( attributes::Vector{Float64}, ideal::Vector{Float64} )= maximum(abs
 function fitness( attributes::Vector{Float64}, ideal::Vector{Float64}; 
       minFit::Float64=0.0, linfit_slope::Float64=1.0 )
   dis = euclidean_distance( attributes, ideal )
-  fit = max( minFit, 0.5-linfit_slope*euclidean_distance( attributes, ideal ))
-  #println("l fit: ",max( fit, minFit ))
-  return max( fit, minFit )
+  fit2 = 0.5-linfit_slope*dis
+  #println("fit: attr: ",attributes,"  ideal: ",ideal,"  dis: ",dis,"  fit2: ",fit2,"  fit: ",max( fit2, minFit ))
+  return max( fit2, minFit )
 end

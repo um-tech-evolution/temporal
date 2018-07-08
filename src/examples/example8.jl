@@ -1,28 +1,30 @@
 # Configuration for running temporal simulation
 #=
 Recommended command line to run:
->  julia run.jl configs/example1
+>  julia run.jl configs/example8
 or
->  julia -p 4 run.jl configs/example1
+>  julia -p 4 run.jl configs/example8
 =#
-simtype = 2   # run  repeat_evolve instead of repeat_evolve_until_dead
-num_trials = 3
-N = 4        # Meta-population size
-num_subpops=[1]                     # Number of subpopulations
+simtype = 1    # run repeat_evolve_until_dead instead of repeat_evolve
+num_trials = 6                    # number of trials with same parameter settings
+N = 128        # Meta-population size
+num_subpops = 8                     # Number of subpopulations
 num_attributes = 1        # number attributes for quantitative representation
-ngens = 3       # Generations after burn-in
-num_emigrants = 0                    # number emigrants
-migration_rate = 0.05
-mutStddev = 0.01
-move_range=0.1
-move_time_interval=0
-probHSelect=[0.0]
-horiz_select=true
+ngens = 1000       # Generations after burn-in
+num_emigrants = 0                    # number emmigrants
+migration_rate = 0.1
+mutStddev = 0.10
+move_range=0.04
+move_time_interval=2
+probHSelect=0.0
+horiz_select=false
+probHSelect=0.0
 horiz_mutate=true
 uniform_start=true
-ideal_init=1.0
-minFit = 0.0
-topology=["vonneumann"]
-linfit_slope=[1.0]
+minFit = 0.40
+ideal_init = 0.5
+#linear_fitness=true
+linfit_slope = 1.0
+topology = "ring"
 burn_in= 0.0    # generations of burn_in as a multiple of N
-additive_error=false  # multiplicative error
+additive_error=true

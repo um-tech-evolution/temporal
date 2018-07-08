@@ -12,7 +12,8 @@ Thus, probHSelect > 0 give much stronger horizontal selection.
 =#
 
 using Base.Test
-export horiz_transfer, horiz_transfer_circular!, new_emigrants_funct, add_emigrants, horiz_transfer_by_fitness!
+export horiz_transfer, horiz_transfer_circular!, new_emigrants_funct, add_emigrants, horiz_transfer_by_fitness!,
+  new_emigrants_funct
 
 function horiz_transfer( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
       id::Vector{Int64}, generation::Int64  )
@@ -27,15 +28,21 @@ function horiz_transfer( meta_pop::PopList, tp::param_type, vt::Dict{Int64,varia
     error("parameters num_emigrants and migration_rate cannot not both be nonzero.")
   end
   if tp[:topology]=="circular"   # Circular is not "by fitness"
-    horiz_transfer_circular!( meta_pop, tp, vt, ideal, id, generation, neg_select=tp[:horiz_select], emigrant_select=tp[:horiz_select] )
+    source_subpop_list = horiz_transfer_circular!( meta_pop, tp, vt, ideal, id, generation, neg_select=tp[:horiz_select], emigrant_select=tp[:horiz_select] )
   elseif  tp[:topology]=="ring" || tp[:topology]=="global"
-    horiz_transfer_by_fitness!( meta_pop, tp, vt, ideal, mmeans, id, neg_select=tp[:horiz_select], topology=tp[:topology], emigrant_select=tp[:horiz_select] )
+    source_subpop_list = horiz_transfer_by_fitness!( meta_pop, tp, vt, ideal, mmeans, id, neg_select=tp[:horiz_select], topology=tp[:topology], emigrant_select=tp[:horiz_select] )
   elseif  tp[:num_subpops] >= 9 && (tp[:topology]=="vonneumann" || tp[:topology]=="moore")
-    horiz_transfer_by_fitness!( meta_pop, tp, vt, ideal, mmeans, id, neg_select=tp[:horiz_select], topology=tp[:topology], emigrant_select=tp[:horiz_select] )
+    source_subpop_list = horiz_transfer_by_fitness!( meta_pop, tp, vt, ideal, mmeans, id, neg_select=tp[:horiz_select], topology=tp[:topology], emigrant_select=tp[:horiz_select] )
   elseif tp[:num_subpops] > 1 && tp[:topology]!="none" 
     println("nsbp: ",tp[:num_subpops],"  topo: ",tp[:topology],"  ne: ",tp[:num_emigrants],"  test: ",(tp[:num_subpops] >= 9 && tp[:num_emigrants] > 0 && (tp[:topology]=="vonneumann" || tp[:topology]=="moore")))
     println("Warning! no horizontal transfer done with tp[:num_subpops]=",tp[:num_subpops]," and topology=",tp[:topology])
   end
+  #println("source subpop list: ",source_subpop_list)
+  #print_meta_pop_attributes( tp, meta_pop, vt )
+  new_emigrants = new_emigrants_funct( meta_pop, tp, vt, source_subpop_list, ideal, id, emigrant_select=tp[:horiz_select] )
+  #print_meta_pop_attributes( tp, meta_pop, vt )
+  #println("new_emigrants: ",new_emigrants)
+  add_emigrants( meta_pop, tp, vt, new_emigrants, neg_select=tp[:horiz_select])
 end
 
 #=
@@ -86,9 +93,7 @@ function horiz_transfer_circular!(  meta_pop::PopList, tp::param_type, vt::Dict{
     end
     source_subpop_list[j] = k
   end
-  new_emigrants = new_emigrants_funct( meta_pop, tp, vt, source_subpop_list, ideal, id, emigrant_select=emigrant_select )
-  #println("new emigrants: ",new_emigrants)
-  add_emigrants( meta_pop, tp, vt, new_emigrants, neg_select=neg_select)
+  return source_subpop_list
 end
 
 @doc """ function horiz_transfer_by_fitness!( )
@@ -105,20 +110,20 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tp::param_type, vt::Dic
       id::Vector{Int64}; topology::String="ring", neg_select::Bool=true, emigrant_select::Bool=true )
   #println("horiz_transfer_by_fitness!  topology: ",tp[:topology],"  means: ",means,"  tp[:probHSelect]: ",tp[:probHSelect]) 
   source_subpop_list = zeros(Int64,tp[:num_subpops])
-  # Note:  k is the source population, j is the destination population
+  # Note:  source is the source population, dest is the destination population
   if topology == "ring"
-    for j = 1:tp[:num_subpops]
-      k_forward = (j+tp[:num_subpops]-2)%tp[:num_subpops]+1
-      k_backward = j%tp[:num_subpops]+1
-      if means[k_forward] > means[j] 
-        #k = (j+tp[:num_subpops]-2)%tp[:num_subpops]+1
-        k = k_forward
+    for dest = 1:tp[:num_subpops]
+      source_forward = (dest+tp[:num_subpops]-2)%tp[:num_subpops]+1
+      source_backward = dest%tp[:num_subpops]+1
+      if means[source_forward] > means[dest] 
+        #source = (dest+tp[:num_subpops]-2)%tp[:num_subpops]+1
+        source = source_forward
       else
-        #k = j%tp[:num_subpops]+1
-        k = k_backward
+        #source = dest%tp[:num_subpops]+1
+        source = source_backward
       end
-      source_subpop_list[j] = k
-      #println("j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
+      source_subpop_list[dest] = source
+      #println("dest: ",dest,"  source: ",source,"  means[dest]: ",means[dest],"  means[source]: ",means[source])
     end
   else 
     ncols,nrows = factorize( tp[:num_subpops] )
@@ -126,55 +131,47 @@ function horiz_transfer_by_fitness!(  meta_pop::PopList, tp::param_type, vt::Dic
     #nrows = Int(floor(tp[:num_subpops]/ncols))
     #println("horiz_transfer_by_fitness!  num_subpops: ",tp[:num_subpops],"  ncols: ",ncols,"  nrows: ",nrows) 
     #println("horiz_transfer_by_fitness!  means: ",means)
-    for j = 1:tp[:num_subpops]
-      #println("hzf j: ",j)
+    for dest = 1:tp[:num_subpops]
+      #println("hzf dest: ",dest)
       if topology == "vonneumann" 
         if ncols < 3 || nrows < 3
           println("ncols: ",ncols,"  nrows: ",nrows)
           error("ncols and nrows must be at least 3 in function horiz_transfer_by_fitness() with topology=='vonneumann'")
         end
-        nbd = von_neumann_nbd(ncols,nrows,j)
+        nbd = von_neumann_nbd(ncols,nrows,dest)
       elseif topology == "moore" 
-        nbd = moore_nbd(ncols,nrows,j)
+        nbd = moore_nbd(ncols,nrows,dest)
         if ncols < 3 || nrows < 3
           println("ncols: ",ncols,"  nrows: ",nrows)
           error("ncols and nrows must be at least 3 in function horiz_transfer_by_fitness() with topology=='moore'")
         end
       elseif topology == "global" 
-        nbd = append!(collect(1:(j-1)),collect((j+1):tp[:num_subpops]))
+        nbd = append!(collect(1:(dest-1)),collect((dest+1):tp[:num_subpops]))
       else
         println("topology: ",topology)
         error("topology in horiz_transfer_by_fitness! must be one of 'ring', 'moore', 'vonneumann',or 'global'.")
       end
       #println("horiz:  ncols: ",ncols,"  nrows: ",nrows,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
-      #println("horiz: j: ",j,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
+      #println("horiz: dest: ",dest,"  nbd:",nbd,"  means[nbd]: ",[means[ii] for ii in nbd])
       rnd = rand()
-      if rnd < tp[:probHSelect]   # k is the index of the source population
-        max_index = nbd[1]  # Choose subpop with the maximum mean fitness
-        for i = 1:length(nbd)
-          if means[nbd[i]] > means[max_index]
-            max_index = nbd[i]
-          end
-        end
-        if means[max_index] >= means[j]
-          source_subpop_list[j] = max_index
+      if rnd < tp[:probHSelect]   # source  is the index of the source population
+        max_index = nbd[indmax(means[nbd])]
+        if means[max_index] >= means[dest]
+          source_subpop_list[dest] = max_index
         else
-          source_subpop_list[j] = j
+          source_subpop_list[dest] = dest
         end
-        k = source_subpop_list[j]
-        #println("max fitness  source_subpop_list[j]: ",source_subpop_list[j],"  rnd: ",rnd)
+        source = source_subpop_list[dest]
+        @assert means[source] >= means[dest]    # The source subpop has greater mean fitness than the dest subpop
       else   # choose a random subpop
-        k = rand(1:length(nbd))  # k  is the index of a random subpop from the neighborhood
-        #println("rand nbd  k: ",k,"  rnd: ",rnd)
-        source_subpop_list[j] = k
-        #println("rand fitness  source_subpop_list[j]: ",source_subpop_list[j],"  rnd: ",rnd)
+        source = rand(1:length(nbd))  # source  is the index of a random subpop from the neighborhood
+        source_subpop_list[dest] = nbd[source]
       end
-      #println("horiz:  j: ",j,"  k: ",k,"  means[j]: ",means[j],"  means[k]: ",means[k])
+      #println("horiz:  dest: ",dest,"  source: ",source,"  means[dest]: ",means[dest],"  means[source]: ",means[source])
     end
   end
   #println("source_subpop_list: ",source_subpop_list)
-  new_emigrants = new_emigrants_funct( meta_pop, tp, vt, source_subpop_list, ideal, id, emigrant_select=emigrant_select )
-  add_emigrants( meta_pop, tp, vt, new_emigrants, neg_select=neg_select)
+  return source_subpop_list
 end
 
 @doc """ new_emigrants_funct()
@@ -182,6 +179,7 @@ end
   Chosen using fitness proportional selection if emigrant_select==true
   Chosen randonly if emigrant_select==false
   Emigrants are mutated if tp[:horiz_mutate] is true
+  Returns new_emigrants which is a list of the emigrants for each subpopulation
 """
 function new_emigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, source_subpop_list::Vector{Int64}, 
     ideal::Vector{Float64}, id::Vector{Int64}; emigrant_select::Bool=true )
@@ -237,6 +235,7 @@ If neg_select==true, the the individuals to be removed are chosen by reverse pro
 function add_emigrants( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, new_emigrants::PopList;
       neg_select::Bool=true )
   subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
+  #println("B add_emigrants: meta_pop: ",meta_pop)
   for j = 1:tp[:num_subpops]
     #println("add emigrants subpop j: ",j,"  new_emigrants[j]: ",new_emigrants[j])
     if length(new_emigrants[j]) > 0 
@@ -253,7 +252,7 @@ function add_emigrants( meta_pop::PopList, tp::param_type, vt::Dict{Int64,varian
       meta_pop[j] = append!( pop_after_deletion, new_emigrants[j] )
     end
   end
-  #println("metapop: ",meta_pop)
+  #println("A add_emigrants: meta_pop: ",meta_pop)
   return meta_pop
 end
 
