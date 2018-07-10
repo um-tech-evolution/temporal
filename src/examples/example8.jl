@@ -7,12 +7,12 @@ or
 =#
 simtype = 1    # run repeat_evolve_until_dead instead of repeat_evolve
 num_trials = 6                    # number of trials with same parameter settings
-N = 128        # Meta-population size
-num_subpops = 8                     # Number of subpopulations
+N = [32,36]        # Meta-population size
+num_subpops = "sqrt"                     # Number of subpopulations
 num_attributes = 1        # number attributes for quantitative representation
 ngens = 1000       # Generations after burn-in
 num_emigrants = 0                    # number emmigrants
-migration_rate = 0.1
+migration_rate = [0.0,0.1]
 mutStddev = 0.10
 move_range=0.04
 move_time_interval=2

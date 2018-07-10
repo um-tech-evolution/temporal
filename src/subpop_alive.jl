@@ -4,6 +4,7 @@ export repeat_evolve_until_dead, evolve_until_dead, subpop_alive
 
 @doc """ function repeat_evolve_until_dead()
   Run repeated trails of evolve_until_dead()
+  parparamd is the per-trial dictionary of paramters, and resultd is the per-trial dictionary of results.
 """
 function repeat_evolve_until_dead( paramd::param_type, resultd::result_type )
   println("repeat_evolve_until_dead: N: ",paramd[:N],"  num_attributes: ",paramd[:num_attributes]," num_subpops: ",paramd[:num_subpops],"  mutStddev: ",paramd[:mutStddev])
@@ -29,6 +30,7 @@ function repeat_evolve_until_dead( paramd::param_type, resultd::result_type )
 end
 
 @doc """ function evolve_until_dead( )
+paramd is the per-trial dictionary of paramters, and resultd is the per-trial dictionary of results.
 A subpop is "dead" if all members have fitness minFit.
 Evolve generations until all subpops are dead, either on a single generation update, or on a move optimum update
 Doesn't keep track of the other statistics.
@@ -46,14 +48,14 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
   id = [0]
   ideal = fill( paramd[:ideal_init], paramd[:num_attributes] )
   subpop_size = Int(floor(paramd[:N]/paramd[:num_subpops]))
+  @assert subpop_size == paramd[:subpop_size]
+  #println("N: ",resultd[:N],"  num_subpops: ",resultd[:num_subpops],"subpop_size: ",subpop_size)
+  #if subpop_size*paramd[:num_subpops] != paramd[:N]
   if subpop_size*paramd[:num_subpops] != paramd[:N]
-    error("N must equal subpop_size*paramd[:num_subpops]")
+    error("N must equal subpop_size*resultd[:num_subpops]")
   end
   vt = Dict{Int64,variant_type}()
   meta_pop = init_meta_pop( paramd, vt, ideal, id )
-  #subpop_alive = fill(true,paramd[:num_subpops])  # Should be used with uniform start
-  #prev_subpop_alive = fill(true,paramd[:num_subpops])  # Should be used with uniform start
-  sbp = subpop_properties_init( paramd[:num_subpops])
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
   resultd[:generational_lifetime]=0
@@ -76,13 +78,14 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
       #println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
       metapop_dead_flag = true
       #println(" g: ",g,"  #optimum just  moved   means: ", fmeans( meta_pop, vt ))
-      subpop_alive_opt_move_update( sbp, meta_pop,  vt, paramd[:minFit] )
+      #subpop_alive_opt_move_update( sbp, meta_pop,  vt, paramd[:minFit] )
       gens_since_last_move_update = 0
     end
     mutate_meta_pop!( meta_pop, vt, ideal, id, paramd )  # will also re-evaluate fitness
     mmeans = fmeans( meta_pop, vt )
     #println("  g: ",g," after mutate means: ",mmeans)
     for  j = 1:paramd[:num_subpops]
+    #for  j = 1:num_subpops
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
     end
     mmeans = fmeans( meta_pop, vt )

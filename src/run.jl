@@ -3,6 +3,24 @@
 #include("types.jl")
 export seed
 
+#= Dictionaries:
+In this program, dictionaries are used to store composite data structures.
+The relevant dictionaries and lists of dictionaries are:
+ *  paramd:  read from the configuration file.  
+             Dictionary keys are parameters and dictionary values are parameter values
+                (which may be lists if there is iteration over multiple paramter values)
+ *  resultd: Dictionary keys are the results from each trial.  Values are null.
+ *  paramd_list:  List of parameter dictionaries, one for each trial, with the same fields as paramd.
+                  Now parameters have the specified values used for the corresponding trial.
+ *  resultd_list:  List of result dictionaries, one for each trial, with the same fields as resultd.
+                  The values are the computed results for the corresponding trial.
+There is one special situation, namely when the parameter :num_subpops has the value "sqrt" rather
+than a numerical value in the configuration file and in paramd.  In this case, the paramd_list value
+of :num_subpops is set to Int(floor(sqrt(N))) where N is the meta_pop size for the corresponding trial.  
+Then the :N value is rounded down to a perfect square, and :subpop_size is set to :num_subpops.
+
+=#
+
 @everywhere function run_evolution( paramd::TemporalEvolution.param_type, resultd::TemporalEvolution.result_type )
   if paramd[:simtype] == 1
     return repeat_evolve_until_dead( paramd, deepcopy(resultd) )
@@ -15,20 +33,23 @@ end
 
 function run_trials( paramd::TemporalEvolution.param_type, resultd::TemporalEvolution.result_type )
   stream = open("$(paramd[:simname]).csv","w")
-  pmap_list = build_pmap_list( paramd )
-  resultd_list = pmap(x->run_evolution(x,resultd), pmap_list )     #  comment out for debugging: error messages are simpler
-  #resultd_list = map(x->run_evolution(x,resultd), pmap_list )     # TODO uncomment for debugging: error messages are simpler
+  paramd_list = build_paramd_list( paramd )
+  resultd_list = pmap(x->run_evolution(x,resultd), paramd_list )     #  comment out for debugging: error messages are simpler
+  #resultd_list = map(x->run_evolution(x,resultd), paramd_list )     # TODO uncomment for debugging: error messages are simpler
   r = resultd_list[1]
   if paramd[:simtype] == 2
     #println("fitness_mean: ",r[:fitness_mean],"  attr variance: ",r[:attribute_variance])
   else
     #println("generational_lifetime: ",r[:generational_lifetime])
   end
+  #print_dict("Dictionary paramd",paramd)
+  #print_dict("Dictionary resultd",resultd)
+  #print_dict("Dictionary resultd_list[1]: ",resultd_list[1])
   writeheader( STDOUT, paramd, resultd )
   writeheader( stream, paramd, resultd )
-  for i = 1:length(pmap_list)
-    writerow( STDOUT, paramd, pmap_list[i], resultd_list[i] )
-    writerow( stream, paramd, pmap_list[i], resultd_list[i] )
+  for i = 1:length(paramd_list)
+    writerow( STDOUT, paramd, paramd_list[i], resultd_list[i] )
+    writerow( stream, paramd, paramd_list[i], resultd_list[i] )
   end
 end
 
@@ -47,7 +68,7 @@ println("simname: ",simname)
 paramd = init_dictionary( TemporalEvolution.temporal_param_fields )
 paramd[:simname] = simname
 paramd = read_parameter_file( "$(simname).jl", paramd )
-println("simtype: ",paramd[:simtype])
+println("simtype: ",paramd[:simtype],"  N: ",paramd[:N])
 if paramd[:simtype] == 2
   resultd = init_dictionary( TemporalEvolution.temporal_result_fields )
 elseif paramd[:simtype] == 1

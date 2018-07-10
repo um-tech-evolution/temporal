@@ -3,7 +3,7 @@ export print_temporal_result, writeheader, writerow, horiz_param_check
 Recommended command line to run:
 >  julia -L TemporalEvolution.jl run_spatial.jl configs/example1
 =#
-export  print_temporal_result, writeheader, writerow
+export  print_temporal_result, writeheader, writerow, print_dict
 #include("types.jl")
   
 # TODO:  Automate this function instead of hard coding  the fields
@@ -45,6 +45,20 @@ function print_temporal_results( tr::result_type )
   println("half_deleterious_mutations_per_gen_trial: ", tr[:half_innovations_per_gen_trial])
 end
 
+function print_dict( name::String, dict::Dict{Symbol,Any} )
+  println(name)
+  for key in keys(dict)
+    println(key,": ",dict[key])
+  end
+end
+
+@doc """ function writeheader() 
+  paramd is the dictionary of parameters as read in from the configuration file.
+  These parameters are written one per line preceded by the comment character hash.
+  resultd is the dictionary that includes those parameters that change from trial to trial, plus the results
+     from each trial.  Each key of this dictionary corresponds to a column of the output CSV file.  This
+     function writes the headers for the columns of the CSV file.
+"""
 function writeheader( stream::IO, paramd::param_type, resultd::result_type )
   seed = try seed = Main.seed catch -1 end  # assign local variable seed to the Main module seed if defined, otherwise to -1 
   param_strings = String["# $(string(Dates.today()))"]
@@ -61,6 +75,8 @@ function writeheader( stream::IO, paramd::param_type, resultd::result_type )
       Base.push!(heads,String(k))
     end
   end 
+  Base.push!(heads,String(:num_subpops))   # always include the :num_subpops field
+  Base.push!(heads,String(:subpop_size))   # always include the :subpop_size field
   for k in keys(resultd)
     Base.push!(heads,String(k))
   end
@@ -78,6 +94,8 @@ function writerow( stream::IO, paramd::param_type, tp::param_type, resultd::resu
       Base.push!(line,tp[k])
     end
   end 
+  Base.push!(line,tp[:num_subpops])   # always include the :num_subpops field
+  Base.push!(line,tp[:subpop_size])   # always include the :subpop_size field
   for k in keys(resultd)
     Base.push!(line,resultd[k])
   end 

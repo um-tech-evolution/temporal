@@ -2,9 +2,9 @@
 # Suggested test sequence:
 # julia> paramd = init_dictionary( param_fields )   # builds dictionary paramd
 # julia> read_parameter_file("param",paramd)        # adds parameters from param file into dictionary
-# julia> build_pmap_list( paramd )                  # builds list of dictionaries for each trial
+# julia> build_paramd_list( paramd )                  # builds list of dictionaries for each trial
 
-export temporal_param_fields, init_dictionary, read_parameter_file, print_meta_pop, build_pmap_list, print_meta_pop_attributes
+export temporal_param_fields, init_dictionary, read_parameter_file, print_meta_pop, build_paramd_list, print_meta_pop_attributes
 
 # Parameter fields for temporal 
 #=  moved to types.jl
@@ -151,30 +151,51 @@ function read_parameter_file( filename::AbstractString, param_dict::Dict{Symbol,
   param_dict
 end  
 
+function check_parameters!( paramd::Dict{Symbol,Any} )
+  if paramd[:num_subpops] == "sqrt"
+    num_subpops = Int(floor(N/sqrt(N )))
+    #subpop_size = Int(floor(sqrt( N )))
+    subpop_size = Int(floor(N/num_subpops))
+    paramd[:N] = num_subpops*subpop_size
+    println("N: ",paramd[:N]N,"subpop_size: ",subpop_size,"  num_subpops: ",num_subpops)
+  end
+end
+
 # builds a list of dictionaries that can be used to run a sequence of trials with different
 #   parameter settings using pmap()  (parallel map).
-function build_pmap_list(  param_dict::Dict{Symbol,Any} )
+function build_paramd_list(  paramd::Dict{Symbol,Any} )
+  #println("build_paramd_list: N: ",paramd[:N])
   array_field_list = Symbol[]
-  for k in keys(param_dict)
-    if typeof(param_dict[k]) <: Array
+  for k in keys(paramd)
+    if typeof(paramd[k]) <: Array
       Base.push!( array_field_list, k )
     end
   end
-  #println(array_field_list)
-  result = []
+  #println("array_field_list: ",array_field_list)
+  paramd_list = []
   n = length(array_field_list)
-  plist_lengths = [ length( param_dict[k] ) for k in array_field_list ]
+  plist_lengths = [ length( paramd[k] ) for k in array_field_list ]
   #println("plist_lengths: ",plist_lengths)
   pli = fill(1,n)    # pli is a vector of indices for the array fields which is incremented lexigraplically
-  max_pmap_list_length = 50000   # maximum number of elements in pmap_list
+  max_paramd_list_length = 50000   # maximum number of elements in paramd_list
   count = 0
-  result_dict = deepcopy(param_dict)
-  for j = 1:n
-    result_dict[array_field_list[j]] = param_dict[array_field_list[j]][pli[j]]
-  end
-  Base.push!( result, result_dict )
-  i = 1
-  while count < max_pmap_list_length
+  paramd_list_dict = deepcopy(paramd)
+  #i = 1
+  while count < max_paramd_list_length
+    paramd_list_dict = deepcopy(paramd_list_dict)
+    for j = 1:n
+      paramd_list_dict[array_field_list[j]] = paramd[array_field_list[j]][pli[j]]
+    end
+    # Handle the special situation where paramd[:num_subpops] == "sqrt"
+    if paramd[:num_subpops] == "sqrt"
+      paramd_list_dict[:num_subpops] = Int(floor(paramd_list_dict[:N]/sqrt( paramd_list_dict[:N] )))
+      paramd_list_dict[:subpop_size] = Int(floor( paramd_list_dict[:N]/paramd_list_dict[:num_subpops] ))
+      paramd_list_dict[:N] = paramd_list_dict[:num_subpops]*paramd_list_dict[:subpop_size]
+    else
+      paramd_list_dict[:subpop_size] = Int(floor( paramd_list_dict[:N]/paramd_list_dict[:num_subpops] ))
+    end
+    #print_dict("uni: paramd_list_dict:",paramd_list_dict)
+    Base.push!( paramd_list, paramd_list_dict )
     i = 1
     while i <= n && pli[i] == plist_lengths[i]
       i += 1
@@ -187,16 +208,10 @@ function build_pmap_list(  param_dict::Dict{Symbol,Any} )
     else
       break
     end
-    result_dict = deepcopy(result_dict)
-    for j = 1:n
-      result_dict[array_field_list[j]] = param_dict[array_field_list[j]][pli[j]]
-    end
-    #println("pd: ",[ param_dict[array_field_list[j]][pli[j]] for j = 1:n]  )
-    Base.push!( result, result_dict )
     count += 1
   end
-  if count == max_pmap_list_length
-    error("error:  count == max_pmap_list_length  in uni.jl.  Increase max_pmap_list_length.")
+  if count == max_paramd_list_length
+    error("error:  count == max_paramd_list_length  in uni.jl.  Increase max_paramd_list_length.")
   end
-  result
+  paramd_list
 end
