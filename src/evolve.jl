@@ -111,7 +111,7 @@ function evolve( tp::param_type, tr::result_type ) # tp is parameter dictionary,
   for g = 1:(tp[:ngens]+int_burn_in)
     if g > int_burn_in && tp[:move_time_interval] > 0 && g % tp[:move_time_interval] == 0
       move_optima( ideal, tp[:move_range] )
-      println("optimum moved:  ideal: ",ideal)
+      #println("optimum moved:  ideal: ",ideal)
     end
     # mutate and compute gen_innov_counts
     gen_innov_counts = mutate_meta_pop!( meta_pop, vt, ideal, id, tp )  # will also re-evaluate fitness

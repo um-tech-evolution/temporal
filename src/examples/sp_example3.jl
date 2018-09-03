@@ -1,0 +1,24 @@
+# Configuration for running spatial simulation
+# simtype=4 means spatial structure by changing the ideal values for attributes
+simtype = 4    
+num_trials = 1
+#N = 16        # Meta-population size
+N = [8,16]        # Meta-population size list
+#num_subpops_list = [1,2,4,8,16,32]                     # Number of subpopulations
+num_subpops = [4,8]                     # Number of subpopulations
+mu = 0.00                 # per-individual innovation rate 
+num_emigrants = [0,1]                    # number emigrants
+num_attributes = 1        # number attributes for quantitative representation
+ngens = 10       # Generations after burn-in
+horiz_select=true
+circular_variation=true
+extreme_variation=false
+burn_in= 1.0    # generations of burn_in as a multiple of N
+mutStddev = 0.05
+use_fit_locations=[false,true]
+ideal_max = 0.8
+ideal_min = 0.2
+ideal_range = 0.1
+linfit_slope = 0.0
+additive_error = true
+neutral = false
