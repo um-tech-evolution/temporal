@@ -1,4 +1,6 @@
 # to run:  julia test_fitness.jl
+using Base.Test
+using FactCheck
 include("../src/fitness.jl")
 attr0 = fill(0.4,3)
 ideal0 = attr0
@@ -15,17 +17,22 @@ fitnesses = [0.5,0.5,
 0.23074175964327476,0.25]
 
 function test_fitness()
+  facts("Testing fitnesses") do
     i = 1
     for ideal in ideals
       for attrib in attribs
         for minFit in minFits
           fit = fitness(attrib,ideal,minFit=minFit,linfit_slope=1.0)
-          println("ideal: ",ideal,"  attr: ",attrib,"  minFit: ",minFit,"  fit: ",fit,"  ans: ",fitnesses[i])
-          @assert isapprox(fit,fitnesses[i])
+          #println("ideal: ",ideal,"  attr: ",attrib,"  minFit: ",minFit,"  fit: ",fit,"  ans: ",fitnesses[i])
+          @test isapprox(fit,fitnesses[i])
+          @fact fitnesses[i] --> roughly(fit)
           i+=1
         end
       end
     end
+  end
 end
 
-test_fitness()
+context("Testing fitness.jl") do
+  test_fitness()
+end

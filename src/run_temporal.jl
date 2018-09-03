@@ -61,21 +61,25 @@ end
 """
 function writeheader( stream::IO, paramd::param_type, resultd::result_type )
   seed = try seed = Main.seed catch -1 end  # assign local variable seed to the Main module seed if defined, otherwise to -1 
+  param_fields = paramd[:simtype] == 4 ? spatial_param_fields : temporal_param_fields
   param_strings = String["# $(string(Dates.today()))"]
   Base.push!(param_strings,(seed!==-1 ? "# random number seed: $(seed)": "# no random number seed defined"))
-  for k in temporal_param_fields
+  for k in param_fields
     if paramd[k] != :null
       Base.push!( param_strings, "# $(String(k))=$(paramd[k])")
     end
   end
   write(stream,join(param_strings,"\n"),"\n")   
   heads = String[]
-  for k in temporal_param_fields
-    if paramd[k] != :null && typeof(paramd[k]) <: Array
+  for k in param_fields
+    if paramd[k] != :null && typeof(paramd[k]) <: Array 
+      #println("writeheader: array field: ",k,paramd[k])
       Base.push!(heads,String(k))
     end
   end 
-  Base.push!(heads,String(:num_subpops))   # always include the :num_subpops field
+  if  !(typeof(paramd[:num_subpops]) <: Array) 
+    Base.push!(heads,String(:num_subpops))   # always include the :num_subpops field
+  end
   Base.push!(heads,String(:subpop_size))   # always include the :subpop_size field
   for k in keys(resultd)
     Base.push!(heads,String(k))
@@ -87,14 +91,18 @@ end
 # tp  is the parameter dictionary corresponding to a particular trial.  All values are fully specified.
 function writerow( stream::IO, paramd::param_type, tp::param_type, resultd::result_type )
   #println("writerow paramd[:num_subpops]: ",paramd[:num_subpops],"  topology: ",paramd[:topology])
+  param_fields = paramd[:simtype] == 4 ? spatial_param_fields : temporal_param_fields
   line = Any[]
   #for k in keys(paramd)
-  for k in temporal_param_fields
+  for k in param_fields
     if paramd[k] != :null && typeof(paramd[k]) <: Array
+      #println("writerow: array field: ",k,paramd[k])
       Base.push!(line,tp[k])
     end
   end 
-  Base.push!(line,tp[:num_subpops])   # always include the :num_subpops field
+  if  !(typeof(paramd[:num_subpops]) <: Array) 
+    Base.push!(line,tp[:num_subpops])   # always include the :num_subpops field
+  end
   Base.push!(line,tp[:subpop_size])   # always include the :subpop_size field
   for k in keys(resultd)
     Base.push!(line,resultd[k])

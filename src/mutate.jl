@@ -10,7 +10,7 @@ export mutate_meta_pop!, mutate_subpop!, mutate_attributes!
   We think of advantageous individuals as innovations.
   We also define individual i to be half-advantageous if  s(i) > 1+0.5/subpop_size and half-disadvantagous if s(i) < 1-0.5/subpop_size.
 """
-function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tp::temporal_result_type  )
+function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,temporal_variant_type}, ideal::Vector{Float64}, id::Vector{Int64}, tp::temporal_result_type  )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   #println("num_subpops: ",num_subpops,"  subpop_size: ",subpop_size)
@@ -21,7 +21,7 @@ function mutate_meta_pop!( meta_pop::PopList, vt::Dict{Int64,variant_type}, idea
   return gen_innov_counts
 end
 
-function mutate_subpop!( subpop::Population, vt::Dict{Int64,variant_type}, ideal::Vector{Float64},
+function mutate_subpop!( subpop::Population, vt::Dict{Int64,temporal_variant_type}, ideal::Vector{Float64},
     id::Vector{Int64}, tp::temporal_result_type, innov_counts::generational_innovation_counts  )
   #println("starting mutate_subpop!  subpop: ",subpop)
   subpop_size = length(subpop)
@@ -53,7 +53,7 @@ function mutate_subpop!( subpop::Population, vt::Dict{Int64,variant_type}, ideal
 end
 
 #=
-function mutate_variant( v::variant_type, mutStddev::Float64 )
+function mutate_variant( v::temporal_variant_type, mutStddev::Float64 )
   new_v = deepcopy(v)
   new_v.attributes = mutate_attributes( new_v.attributes, mutStddev, true )
   new_v

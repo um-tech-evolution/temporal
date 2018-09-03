@@ -5,7 +5,7 @@ export propsel, propsel!, reverse_propsel
 Apply proportional selection to Population pop using fitness, 
 and return the result.  
 """
-function propsel( pop::Population, variant_table::Dict{Int64,variant_type} )
+function propsel( pop::Population, variant_table::Dict{Int64,temporal_variant_type} )
   new_pop = deepcopy(pop)
   propsel!( new_pop, variant_table )
   new_pop
@@ -15,7 +15,7 @@ end
 Apply proportional selection to Population pop to generate a new population of size n.
 Assumes that all elements (integers) in pop have their fitnesses defined in variant_table.
 """
-function propsel( pop::Population, n::Int64, variant_table::Dict{Int64,variant_type} )
+function propsel( pop::Population, n::Int64, variant_table::Dict{Int64,temporal_variant_type} )
   #println("propsel n: ",n,"  pop: ",pop)
   fmax = 0.0
   for v in pop
@@ -51,7 +51,7 @@ end
 @doc """function propsel!()
 Conduct proportional selection in-place.  
 """
-function propsel!( pop::Population, variant_table::Dict{Int64,variant_type} )
+function propsel!( pop::Population, variant_table::Dict{Int64,temporal_variant_type} )
   fmax = 0.0
   for v in pop
     fitv = variant_table[v].fitness
@@ -90,7 +90,7 @@ Note that under this rescaling, fmax -> fmin,  fmin -> fmax.
 Assumes that all elements (integers) in pop have their fitnesses defined in variant_table.
 n  must be less than N/2.
 """
-function reverse_propsel( pop::Population, n::Int64, variant_table::Dict{Int64,variant_type} )
+function reverse_propsel( pop::Population, n::Int64, variant_table::Dict{Int64,temporal_variant_type} )
   N = length(pop)
   #println("reverse_propsel N: ",N,"  n: ",n)
   if n > Int(ceil(N/2))
@@ -179,7 +179,7 @@ Under this rescaling, fmax -> fmin,  fmin -> fmax.
 Assumes that all elements (integers) in pop have their fitnesses defined in variant_table.
 Not as useful as reverse_propsel() defined above.
 """
-function negative_propsel( pop::Population, n::Int64, variant_table::Dict{Int64,variant_type} )
+function negative_propsel( pop::Population, n::Int64, variant_table::Dict{Int64,temporal_variant_type} )
   new_pop = zeros(Int64,n)
   fmax = 0.0
   fmin = typemax(Float64)

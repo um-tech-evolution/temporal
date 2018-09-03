@@ -61,7 +61,7 @@ function init_dictionary( field_list )
   dict
 end
 
-function print_meta_pop( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,variant_type} )
+function print_meta_pop( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,temporal_variant_type} )
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   for  j = 1:paramd[:num_subpops]
     print(" ")
@@ -79,7 +79,7 @@ function print_meta_pop( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,v
   println()
 end
 
-function print_meta_pop_attributes( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,variant_type} )
+function print_meta_pop_attributes( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,temporal_variant_type} )
   println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   for  j = 1:paramd[:num_subpops]
     print("[")
@@ -144,7 +144,7 @@ function read_parameter_file( filename::AbstractString, param_dict::Dict{Symbol,
     end
   end
   for key in keys(param_dict)
-    if param_dict[key] == :null
+    if param_dict[key] == :null && key != :num_fit_locations
       println("warning:  parameter: ",key," not initialized")
     end
   end
@@ -171,7 +171,7 @@ function build_paramd_list(  paramd::Dict{Symbol,Any} )
       Base.push!( array_field_list, k )
     end
   end
-  #println("array_field_list: ",array_field_list)
+  sort!(array_field_list,rev=true)  # use reverse sorted order to be compatible with spatial
   paramd_list = []
   n = length(array_field_list)
   plist_lengths = [ length( paramd[k] ) for k in array_field_list ]
@@ -193,6 +193,14 @@ function build_paramd_list(  paramd::Dict{Symbol,Any} )
       paramd_list_dict[:N] = paramd_list_dict[:num_subpops]*paramd_list_dict[:subpop_size]
     else
       paramd_list_dict[:subpop_size] = Int(floor( paramd_list_dict[:N]/paramd_list_dict[:num_subpops] ))
+    end
+    # Handle the special spatial computation of paramd[:num_fit_locations]
+    if paramd[:simtype] == 4  # Spatial
+      if typeof(paramd[:num_subpops]) <: Array
+        paramd_list_dict[:num_fit_locations] = paramd_list_dict[:use_fit_locations] ? maximum(paramd[:num_subpops]) : paramd_list_dict[:num_subpops]
+      else
+        paramd_list_dict[:num_fit_locations] = paramd_list_dict[:num_subpops]
+      end
     end
     #print_dict("uni: paramd_list_dict:",paramd_list_dict)
     Base.push!( paramd_list, paramd_list_dict )

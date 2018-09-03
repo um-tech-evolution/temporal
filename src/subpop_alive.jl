@@ -54,7 +54,7 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
   if subpop_size*paramd[:num_subpops] != paramd[:N]
     error("N must equal subpop_size*resultd[:num_subpops]")
   end
-  vt = Dict{Int64,variant_type}()
+  vt = Dict{Int64,temporal_variant_type}()
   meta_pop = init_meta_pop( paramd, vt, ideal, id )
   #println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])
   #println("vt: ",vt)
@@ -77,21 +77,20 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
       move_optima( ideal, paramd[:move_range] )
       #println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
       metapop_dead_flag = true
-      #println(" g: ",g,"  #optimum just  moved   means: ", fmeans( meta_pop, vt ))
+      #println(" g: ",g,"  #optimum just  moved   means: ", fit_means( meta_pop, vt ))
       #subpop_alive_opt_move_update( sbp, meta_pop,  vt, paramd[:minFit] )
       gens_since_last_move_update = 0
     end
     mutate_meta_pop!( meta_pop, vt, ideal, id, paramd )  # will also re-evaluate fitness
-    mmeans = fmeans( meta_pop, vt )
+    mmeans = fit_means( meta_pop, vt )
     #println("  g: ",g," after mutate means: ",mmeans)
     for  j = 1:paramd[:num_subpops]
     #for  j = 1:num_subpops
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
     end
-    mmeans = fmeans( meta_pop, vt )
     #println("  g: ",g," before horiz means: ",mmeans)
     horiz_transfer( meta_pop, paramd, vt, ideal, mmeans, id, g )
-    mmeans, vvars = means_vars( meta_pop, vt )
+    mmeans, vvars, stddevs, cfvars = fit_means_vars_stddevs_cfvars( meta_pop, vt )
     #println("  g: ",g," after horiz: ",mmeans)
     #println("vt: ",vt)
     #print("g:",g,": ")
@@ -167,7 +166,7 @@ function subpop_properties_init( num_subpops::Int64 )
   return subpop_properties(generational_subpop_alive,prev_subpop_alive,current_subpop_alive)
 end
 
-function subpop_alive_gen_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function subpop_alive_gen_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,temporal_variant_type}, minFit::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   for j = 1:num_subpops
@@ -181,7 +180,7 @@ function subpop_alive_gen_update( sbp::subpop_properties, meta_pop::PopList,  va
   end
 end
 
-function subpop_alive_opt_move_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function subpop_alive_opt_move_update( sbp::subpop_properties, meta_pop::PopList,  variant_table::Dict{Int64,temporal_variant_type}, minFit::Float64 )
   if !any(sbp.prev_subpop_alive) 
     return
   end
@@ -199,7 +198,7 @@ end
   A subpop is alive if it satisfies two conditions: it was alive in the previous generation, and it has at least one individual whose
      fitness is strictly greater than minFit.
 """
-function update_subpop_alive!( subpop_alive::Vector{Bool}, prev_subpop_alive::Vector{Bool}, meta_pop::PopList, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function update_subpop_alive!( subpop_alive::Vector{Bool}, prev_subpop_alive::Vector{Bool}, meta_pop::PopList, variant_table::Dict{Int64,temporal_variant_type}, minFit::Float64 )
   num_subpops = length(meta_pop)
   subpop_size = length(meta_pop[1])
   for j = 1:num_subpops
@@ -210,11 +209,11 @@ function update_subpop_alive!( subpop_alive::Vector{Bool}, prev_subpop_alive::Ve
 end
 
 # A subpop is alive if some individual has fitness above minFit
-function subpop_alive(subpop::Population, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function subpop_alive(subpop::Population, variant_table::Dict{Int64,temporal_variant_type}, minFit::Float64 )
   return count_individuals_at_minFit(subpop, variant_table, minFit) != length(subpop)
 end
 
 # The metapop is alive if at least one of its subpops is alive
-function metapop_alive(meta_pop::PopList, variant_table::Dict{Int64,variant_type}, minFit::Float64 )
+function metapop_alive(meta_pop::PopList, variant_table::Dict{Int64,temporal_variant_type}, minFit::Float64 )
   return count_subpops_at_minFit(meta_pop, variant_table, minFit) != length(meta_pop)
 end 

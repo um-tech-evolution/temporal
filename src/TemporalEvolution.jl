@@ -7,10 +7,10 @@ include("../src/run_temporal.jl")
 include("../src/fitness.jl")
 include("../src/horiz.jl")
 include("../src/mutate.jl")    # Also in evotech/unified/src as a symlink
+include("../src/stats.jl")
 include("../src/uni.jl")       # Also in evotech/unified/src as a symlink
+include("../src/spatial.jl")
 end
 using TemporalEvolution
-#include("../src/ev_init.jl")
-#using EvInit
 
 

@@ -15,7 +15,7 @@ using Base.Test
 export horiz_transfer, horiz_transfer_circular!, new_emigrants_funct, add_emigrants, horiz_transfer_by_fitness!,
   new_emigrants_funct
 
-function horiz_transfer( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
+function horiz_transfer( meta_pop::PopList, tp::param_type, vt::Dict{Int64,temporal_variant_type}, ideal::Vector{Float64}, mmeans::Vector{Float64},
       id::Vector{Int64}, generation::Int64  )
   emigration = tp[:topology] != "none" && tp[:num_subpops] != 1 && (tp[:num_emigrants] > 0 || (tp[:migration_rate] != :null && tp[:migration_rate] > 0.0))
   #println("emigration: ",emigration)
@@ -42,7 +42,7 @@ function horiz_transfer( meta_pop::PopList, tp::param_type, vt::Dict{Int64,varia
   new_emigrants = new_emigrants_funct( meta_pop, tp, vt, source_subpop_list, ideal, id, emigrant_select=tp[:horiz_select] )
   #print_meta_pop_attributes( tp, meta_pop, vt )
   #println("new_emigrants: ",new_emigrants)
-  add_emigrants( meta_pop, tp, vt, new_emigrants, neg_select=tp[:horiz_select])
+  add_emigrants( meta_pop, tp, vt, new_emigrants, neg_select=false)
 end
 
 #=
@@ -78,7 +78,7 @@ end
   Elements to be replaced can be random or selected by reverse proportional selection depending on the flag neg_select.
   metapop is modified by this function (as a side effect)
 """
-function horiz_transfer_circular!(  meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, id::Vector{Int64},
+function horiz_transfer_circular!(  meta_pop::PopList, tp::param_type, vt::Dict{Int64,temporal_variant_type}, ideal::Vector{Float64}, id::Vector{Int64},
      generation::Int64; neg_select::Bool=true, emigrant_select::Bool=true )
   #println("horiz_transfer_circular! forward: ",forward,"  num_attributes: ",tp[:num_attributes])
   forward = generation % 2 == 0 ? true : false  
@@ -106,7 +106,7 @@ end
     "global":    each subpop is a neighbor of all other subpops
   For grid options, the metapop size (tp[:N]) should be a multiple of the number of subpops (tp[:num_subpops]).
 """    
-function horiz_transfer_by_fitness!(  meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, ideal::Vector{Float64}, means::Vector{Float64},
+function horiz_transfer_by_fitness!(  meta_pop::PopList, tp::param_type, vt::Dict{Int64,temporal_variant_type}, ideal::Vector{Float64}, means::Vector{Float64},
       id::Vector{Int64}; topology::String="ring", neg_select::Bool=true, emigrant_select::Bool=true )
   #println("horiz_transfer_by_fitness!  topology: ",tp[:topology],"  means: ",means,"  tp[:probHSelect]: ",tp[:probHSelect]) 
   source_subpop_list = zeros(Int64,tp[:num_subpops])
@@ -181,7 +181,7 @@ end
   Emigrants are mutated if tp[:horiz_mutate] is true
   Returns new_emigrants which is a list of the emigrants for each subpopulation
 """
-function new_emigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, source_subpop_list::Vector{Int64}, 
+function new_emigrants_funct( meta_pop::PopList, tp::param_type, vt::Dict{Int64,temporal_variant_type}, source_subpop_list::Vector{Int64}, 
     ideal::Vector{Float64}, id::Vector{Int64}; emigrant_select::Bool=true )
   subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
   new_emigrants = Population[ Population() for j = 1:tp[:num_subpops] ]  # new_emigrants[j] is the list of immigrants into subpop j
@@ -232,7 +232,7 @@ end
 For each j, removes length(new_emigrants[j]) individuals from subpop[j] and replaces them with new_emigrants[j].
 If neg_select==true, the the individuals to be removed are chosen by reverse proportional selection, otherwise randomly.
 """
-function add_emigrants( meta_pop::PopList, tp::param_type, vt::Dict{Int64,variant_type}, new_emigrants::PopList;
+function add_emigrants( meta_pop::PopList, tp::param_type, vt::Dict{Int64,temporal_variant_type}, new_emigrants::PopList;
       neg_select::Bool=true )
   subpop_size = Int(floor(tp[:N]/tp[:num_subpops]))
   #println("B add_emigrants: meta_pop: ",meta_pop)
