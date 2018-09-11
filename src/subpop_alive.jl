@@ -83,7 +83,7 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
         break
       end
       move_optima( ideal, paramd[:move_range] )
-      println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
+      #println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
       metapop_dead_flag = true
       #println(" g: ",g,"  #optimum just  moved   means: ", fit_means( meta_pop, vt ))
       #subpop_alive_opt_move_update( sbp, meta_pop,  vt, paramd[:minFit] )
@@ -123,7 +123,7 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
   end  # generational loop
   (resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain]) = 
       (propsel_loss,propsel_gain,horiz_loss,horiz_gain)
-  println("resultd gain loss: ",(resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain]))
+  #println("resultd gain loss: ",(resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain]))
   if resultd[:move_update_lifetime]!=0
     #println("loop terminated with move update lifetime: ",resultd[:move_update_lifetime])
   end
