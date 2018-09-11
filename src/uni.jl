@@ -4,7 +4,8 @@
 # julia> read_parameter_file("param",paramd)        # adds parameters from param file into dictionary
 # julia> build_paramd_list( paramd )                  # builds list of dictionaries for each trial
 
-export temporal_param_fields, init_dictionary, read_parameter_file, print_meta_pop, build_paramd_list, print_meta_pop_attributes
+export temporal_param_fields, init_dictionary, read_parameter_file, print_meta_pop, build_paramd_list, 
+      print_meta_pop_attributes, count_alive, subpops_alive, opt_gained_lost_counts
 
 # Parameter fields for temporal 
 #=  moved to types.jl
@@ -78,6 +79,60 @@ function print_meta_pop( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,t
   end
   println()
 end
+
+# counts number of alive individuals in subpop
+# An individual is "alive" if it has fitness above minFit
+# An individual is "dead" if it has fitness == minFit
+function count_alive( subpop::Population, paramd::param_type, vt::Dict{Int64,temporal_variant_type})
+  #print("count_alive: ")
+  count = 0
+  for x in subpop
+    #print(" vt[",x,"] fitness: ",vt[x].fitness)
+    if vt[x].fitness > paramd[:minFit]
+      count += 1
+    end
+  end
+  #println("  count: ",count)
+  return count
+end
+
+# Returns a Bool array over subpops where true means alive 
+function subpops_alive( meta_pop::PopList, paramd::param_type, vt::Dict{Int64,temporal_variant_type})
+  result = fill(false, length(meta_pop) )
+  i = 1
+  for s in meta_pop
+    if count_alive( s, paramd, vt ) > 0
+      result[i] = true
+    end
+    i += 1
+  end
+  #println("subpop_alive: ",result)
+  result
+end
+
+# Each of the parameters is a Boolean vector over subpopulations
+# Returns the count of subpops for the following situations
+# subpop gains optimum after move_optima and propsel
+# subpop loses optimum after move_optima and propsel
+# subpop gains optimum after horiz
+# subpop loses optimum after horiz
+# Note that "gains optimum" is equivalent going from dead to alive.
+# Note that "loses optimum" is equivalent going from alive to dead.
+function opt_gained_lost_counts( prev_gen::Vector{Bool}, after_propsel::Vector{Bool}, after_horiz::Vector{Bool} )
+  (propsel_loss,propsel_gain,horiz_loss,horiz_gain) = (0,0,0,0)
+  num_subpops = length(prev_gen)
+  for i = 1:num_subpops
+    propsel__loss = (prev_gen[i] && !after_propsel[i]) ? 1 : 0
+    propsel__gain = (!prev_gen[i] && after_propsel[i]) ? 1 : 0
+    horiz__loss = (after_propsel[i] && !after_horiz[i]) ? 1 : 0
+    horiz__gain = (!after_propsel[i] && after_horiz[i]) ? 1 : 0
+    #println("i: ",i," ",(propsel__loss,propsel__gain,horiz__loss,horiz__gain))
+    (propsel_loss,propsel_gain,horiz_loss,horiz_gain) = 
+        (propsel_loss,propsel_gain,horiz_loss,horiz_gain) .+  (propsel__loss,propsel__gain,horiz__loss,horiz__gain) 
+  end
+  (propsel_loss,propsel_gain,horiz_loss,horiz_gain)
+end
+  
 
 function print_meta_pop_attributes( paramd::param_type, meta_pop::PopList, vt::Dict{Int64,temporal_variant_type} )
   println("meta_pop: ",[meta_pop[j] for j = 1:length(meta_pop)])

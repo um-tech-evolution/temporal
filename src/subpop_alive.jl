@@ -15,6 +15,7 @@ function repeat_evolve_until_dead( paramd::param_type, resultd::result_type )
   sum_generational_lifetime = 0.0
   sum_move_update_lifetime = 0.0
   sum_gen_limit_count = 0
+  (sum_propsel_loss,sum_propsel_gain,sum_horiz_loss,sum_horiz_gain) = (0,0,0,0)
   for t = 1:paramd[:num_trials]
     resultd = evolve_until_dead( paramd, deepcopy(resultd) )
     Base.push!( resultd_list, deepcopy(resultd) )   # TODO:  what is this line doing?
@@ -22,9 +23,14 @@ function repeat_evolve_until_dead( paramd::param_type, resultd::result_type )
     sum_move_update_lifetime += resultd[:move_update_lifetime] 
     #println("repeat: mul:", resultd[:move_update_lifetime])
     sum_gen_limit_count += resultd[:gen_limit_reached_count]
+    (sum_propsel_loss,sum_propsel_gain,sum_horiz_loss,sum_horiz_gain) =
+        (sum_propsel_loss,sum_propsel_gain,sum_horiz_loss,sum_horiz_gain) .+ 
+        (resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain])
   end
   resultd[:generational_lifetime] = sum_generational_lifetime/paramd[:num_trials]
   resultd[:move_update_lifetime] = sum_move_update_lifetime/paramd[:num_trials]
+  (resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain]) = 
+      (sum_propsel_loss,sum_propsel_gain,sum_horiz_loss,sum_horiz_gain) ./ paramd[:num_trials]
   resultd[:gen_limit_reached_count] = sum_gen_limit_count
   return resultd
 end
@@ -61,10 +67,12 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
   resultd[:generational_lifetime]=0
   resultd[:move_update_lifetime]=0
   resultd[:gen_limit_reached_count]=0
+  (propsel_loss,propsel_gain,horiz_loss,horiz_gain) = (0,0,0,0)
   g = 1
-  #while (any(sbp.generational_subpop_alive) || any(sbp.prev_subpop_alive)) && g < paramd[:ngens]+int_burn_in
   while (resultd[:generational_lifetime]==0 || resultd[:move_update_lifetime]==0 ) && g < paramd[:ngens]+int_burn_in
     gens_since_last_move_update += 1
+    subpops_alive_before = subpops_alive( meta_pop, paramd, vt )
+    #println("subpops_alive_before: ",subpops_alive_before)
     if paramd[:move_time_interval] > 0 && g > int_burn_in+1 && g % paramd[:move_time_interval] == 1
       #println("move update:  metapop_dead_flag: ",metapop_dead_flag,"  gens_since_last_move_update: ",gens_since_last_move_update)
       # Check whether metapop has been dead for all generations since the last move update
@@ -75,7 +83,7 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
         break
       end
       move_optima( ideal, paramd[:move_range] )
-      #println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
+      println(" g: ",g,"  #optimum just  moved resultd[:move_update_lifetime]: ",resultd[:move_update_lifetime])
       metapop_dead_flag = true
       #println(" g: ",g,"  #optimum just  moved   means: ", fit_means( meta_pop, vt ))
       #subpop_alive_opt_move_update( sbp, meta_pop,  vt, paramd[:minFit] )
@@ -85,11 +93,18 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
     mmeans = fit_means( meta_pop, vt )
     #println("  g: ",g," after mutate means: ",mmeans)
     for  j = 1:paramd[:num_subpops]
-    #for  j = 1:num_subpops
       meta_pop[j] = propsel( meta_pop[j], subpop_size, vt )  # comment out for fitness test
     end
+    subpops_alive_after_propsel= subpops_alive( meta_pop, paramd, vt )
+    #println("subpops_alive_after_propsel: ",subpops_alive_after_propsel)
     #println("  g: ",g," before horiz means: ",mmeans)
     horiz_transfer( meta_pop, paramd, vt, ideal, mmeans, id, g )
+    subpops_alive_after_horiz= subpops_alive( meta_pop, paramd, vt )
+    #println("subpops_alive_after_horiz: ",subpops_alive_after_propsel)
+    (propsel_loss, propsel_gain, horiz_loss, horiz_gain) = 
+        (propsel_loss, propsel_gain, horiz_loss, horiz_gain) .+ 
+        opt_gained_lost_counts( subpops_alive_before, subpops_alive_after_propsel, subpops_alive_after_horiz )
+    #println("opt_counts: ",(propsel_loss, propsel_gain, horiz_loss, horiz_gain))
     mmeans, vvars, stddevs, cfvars = fit_means_vars_stddevs_cfvars( meta_pop, vt )
     #println("  g: ",g," after horiz: ",mmeans)
     #println("vt: ",vt)
@@ -104,39 +119,11 @@ function evolve_until_dead( paramd::param_type, resultd::result_type )
       metapop_dead_flag = false
     end
     #println("alive: ",metapop_alive(meta_pop,vt,paramd[:minFit]),"  dead_flag: ",metapop_dead_flag)
-    #=  old update method
-    subpop_alive_gen_update( sbp, meta_pop, vt, paramd[:minFit] )
-    #println("  g: ",g,"  sbp.generational_subpop_alive: ",sbp.generational_subpop_alive )
-    #println("  g: ",g,"  sbp.prev_subpop_alive: ",sbp.prev_subpop_alive )
-    #println("  g: ",g,"  sbp.current_subpop_alive: ",sbp.current_subpop_alive )
-    if resultd[:generational_lifetime]==0 && !any(sbp.generational_subpop_alive)
-      println("g: ",g," All subpops died (single generation update).  generational_lifetime set")
-      resultd[:generational_lifetime] = g
-    elseif resultd[:move_update_lifetime]==0 && !any(sbp.prev_subpop_alive)
-      println("g: ",g," All subpops died (move optimum update).  move_update_lifetime set")
-      resultd[:move_update_lifetime] = g
-    end
-    =#
     g += 1
-  end
-  #=  old update method
-  if g == paramd[:ngens]+int_burn_in
-    #println("evolve_until_dead ran for ",g," generations when the generation limit was reached")
-    resultd[:gen_limit_reached_count] += 1
-    if resultd[:generational_lifetime] > 0
-      #println("all subpops died at generation ",resultd[:generational_lifetime],"  (generational update).")
-    else
-      #println("g: ",g," All subpops died (single generation update).  generational_lifetime set")
-      resultd[:generational_lifetime] = g
-    end
-    if resultd[:move_update_lifetime] > 0
-      #println("all subpops died at generation ",resultd[:move_update_lifetime],"(move optimum update).")
-    else
-      #println("g: ",g," All subpops died (move optimum update).  move_update_lifetime set")
-      resultd[:move_update_lifetime] = g
-    end
-  end
-  =#
+  end  # generational loop
+  (resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain]) = 
+      (propsel_loss,propsel_gain,horiz_loss,horiz_gain)
+  println("resultd gain loss: ",(resultd[:propsel_loss],resultd[:propsel_gain],resultd[:horiz_loss],resultd[:horiz_gain]))
   if resultd[:move_update_lifetime]!=0
     #println("loop terminated with move update lifetime: ",resultd[:move_update_lifetime])
   end

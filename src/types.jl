@@ -40,7 +40,6 @@ type trial_innovation_counts
   half_neg::Float64
 end
 
-# TODO:  define spatial_param_fields
 global temporal_param_fields = [
   :simtype    # 0: spatial.  2, temporal run repeat_evolve.  1: run repeat_evolve_until_dead for length of retention.
   :simname     # name of configuration file (with .jl extension) and of output file (with .csv extenseion)
@@ -87,12 +86,20 @@ global temporal_result_fields = [
   :half_innovations_per_gen_trial
   :deleterious_mutations_per_gen_trial
   :half_deleterious_mutations_per_gen_trial
+  :propsel_loss     # Average of propsel_loss over subpops and generations
+  :propsel_gain     # Average of propsel_gain over subpops and generations
+  :horiz_loss     # Average of horiz_loss over subpops and generations
+  :horiz_gain     # Average of horiz_gain over subpops and generations
 ]
 
 global subpop_alive_result_fields = [
   :generational_lifetime
   :move_update_lifetime
   :gen_limit_reached_count
+  :propsel_loss     # Average of propsel_loss over subpops and generations
+  :propsel_gain     # Average of propsel_gain over subpops and generations
+  :horiz_loss     # Average of horiz_loss over subpops and generations
+  :horiz_gain     # Average of horiz_gain over subpops and generations
 ]
 
 global spatial_param_fields = [

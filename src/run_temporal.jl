@@ -1,10 +1,9 @@
-export print_temporal_result, writeheader, writerow, horiz_param_check
+export print_temporal_result, writeheader, writerow, horiz_param_check, print_dict
 #=
 Recommended command line to run:
->  julia -L TemporalEvolution.jl run_spatial.jl configs/example1
+>  julia run.jl examples/example1  
+where examples/example1 is for simtype==1, examples/sp_example1 is for simtype==4 
 =#
-export  print_temporal_result, writeheader, writerow, print_dict
-#include("types.jl")
   
 # TODO:  Automate this function instead of hard coding  the fields
 function print_temporal_params( tp::param_type )
@@ -61,17 +60,17 @@ end
 """
 function writeheader( stream::IO, paramd::param_type, resultd::result_type )
   seed = try seed = Main.seed catch -1 end  # assign local variable seed to the Main module seed if defined, otherwise to -1 
-  param_fields = paramd[:simtype] == 4 ? spatial_param_fields : temporal_param_fields
+  #param_fields = paramd[:simtype] == 4 ? spatial_param_fields : temporal_param_fields
   param_strings = String["# $(string(Dates.today()))"]
   Base.push!(param_strings,(seed!==-1 ? "# random number seed: $(seed)": "# no random number seed defined"))
-  for k in param_fields
+  for k in Main.param_fields_list
     if paramd[k] != :null
       Base.push!( param_strings, "# $(String(k))=$(paramd[k])")
     end
   end
   write(stream,join(param_strings,"\n"),"\n")   
   heads = String[]
-  for k in param_fields
+  for k in Main.param_fields_list
     if paramd[k] != :null && typeof(paramd[k]) <: Array 
       #println("writeheader: array field: ",k,paramd[k])
       Base.push!(heads,String(k))
@@ -81,7 +80,7 @@ function writeheader( stream::IO, paramd::param_type, resultd::result_type )
     Base.push!(heads,String(:num_subpops))   # always include the :num_subpops field
   end
   Base.push!(heads,String(:subpop_size))   # always include the :subpop_size field
-  for k in keys(resultd)
+  for k in Main.result_fields_list
     Base.push!(heads,String(k))
   end
   write(stream,join(heads,","),"\n")
@@ -91,10 +90,10 @@ end
 # tp  is the parameter dictionary corresponding to a particular trial.  All values are fully specified.
 function writerow( stream::IO, paramd::param_type, tp::param_type, resultd::result_type )
   #println("writerow paramd[:num_subpops]: ",paramd[:num_subpops],"  topology: ",paramd[:topology])
-  param_fields = paramd[:simtype] == 4 ? spatial_param_fields : temporal_param_fields
+  #param_fields = paramd[:simtype] == 4 ? spatial_param_fields : temporal_param_fields
+  #@assert param_fields == Main.param_fields_list
   line = Any[]
-  #for k in keys(paramd)
-  for k in param_fields
+  for k in Main.param_fields_list
     if paramd[k] != :null && typeof(paramd[k]) <: Array
       #println("writerow: array field: ",k,paramd[k])
       Base.push!(line,tp[k])
@@ -104,7 +103,7 @@ function writerow( stream::IO, paramd::param_type, tp::param_type, resultd::resu
     Base.push!(line,tp[:num_subpops])   # always include the :num_subpops field
   end
   Base.push!(line,tp[:subpop_size])   # always include the :subpop_size field
-  for k in keys(resultd)
+  for k in Main.result_fields_list
     Base.push!(line,resultd[k])
   end 
   write(stream,join(line,","),"\n")

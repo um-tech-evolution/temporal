@@ -39,8 +39,8 @@ end
 function run_trials( paramd::TemporalEvolution.param_type, resultd::TemporalEvolution.result_type )
   stream = open("$(paramd[:simname]).csv","w")
   paramd_list = build_paramd_list( paramd )
-  #resultd_list = pmap(x->run_evolution(x,resultd), paramd_list )     #  comment out for debugging: error messages are simpler
-  resultd_list = map(x->run_evolution(x,resultd), paramd_list )     # TODO uncomment for debugging: error messages are simpler
+  resultd_list = pmap(x->run_evolution(x,resultd), paramd_list )     #  comment out for debugging: error messages are simpler
+  #resultd_list = map(x->run_evolution(x,resultd), paramd_list )     # TODO uncomment for debugging: error messages are simpler
   r = resultd_list[1]
   if paramd[:simtype] == 2
     #println("fitness_mean: ",r[:fitness_mean],"  attr variance: ",r[:attribute_variance])
@@ -61,6 +61,7 @@ function run_trials( paramd::TemporalEvolution.param_type, resultd::TemporalEvol
 end
 
 global seed
+global param_fields_list, result_fields_list
 if length(ARGS) == 0
   simname = "examples/example1"
 else
@@ -73,27 +74,22 @@ else
 end
 println("simname: ",simname)
 include("$(simname).jl")
-#paramd = init_dictionary( TemporalEvolution.temporal_param_fields )
 
 if simtype == 2
   println("simtype == 2 which is temporal reporting equilibrium stats over generations.")
-  paramd = init_dictionary( TemporalEvolution.temporal_param_fields )  
+  param_fields_list = TemporalEvolution.temporal_param_fields   
+  result_fields_list = TemporalEvolution.temporal_result_fields
 elseif simtype == 1
   println("simtype == 1 which is temporal reporting number of generations until ideal is lost")
-  #paramd = init_dictionary( TemporalEvolution.subpop_alive_param_fields )
-  paramd = init_dictionary( TemporalEvolution.temporal_param_fields )
+  param_fields_list =  TemporalEvolution.temporal_param_fields
+  result_fields_list =  TemporalEvolution.subpop_alive_result_fields
 elseif simtype == 4
   println("simtype == 4 which is spatial reporting equilibrium stats over generations.")
-  paramd = init_dictionary( TemporalEvolution.spatial_param_fields )  
+  param_fields_list = TemporalEvolution.spatial_param_fields 
+  result_fields_list = TemporalEvolution.spatial_result_fields 
 end
+paramd =init_dictionary( param_fields_list )
 paramd[:simname] = simname
 paramd = read_parameter_file( "$(simname).jl", paramd )
-if paramd[:simtype] == 2
-  resultd = init_dictionary( TemporalEvolution.temporal_result_fields )  
-elseif paramd[:simtype] == 1
-  resultd = init_dictionary( TemporalEvolution.subpop_alive_result_fields )
-elseif paramd[:simtype] == 4
-  resultd = init_dictionary( TemporalEvolution.spatial_result_fields )  
-end
-println("simtype: ",paramd[:simtype],"  N: ",paramd[:N])
+resultd = init_dictionary( result_fields_list )
 run_trials( paramd, resultd )
