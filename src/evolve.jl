@@ -11,8 +11,8 @@ Runs evolve()  tr[:num_subpops] times, and averages the results.
 See types.jl for the definition of param_type and result_type, and see types.jl for legal keys for this type.
 """
 function repeat_evolve( tp::param_type, tr::result_type )  # tp is parameter dictionary, tr is results dictionary
-  #println("rep_evolve: num_subpops: ",tp[:num_subpops],"  ngens: ",tp[:ngens],"  num_emigrants: ",tp[:ne],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],
-  #      "  topology: ",tp[:topology],"  num_attributes: ",tp[:num_attributes])
+  println("rep_evolve: num_subpops: ",tp[:num_subpops],"  ngens: ",tp[:ngens],"  num_emigrants: ",tp[:num_emigrants],"  horiz_sel: ",tp[:horiz_select],"  mutStddev: ",tp[:mutStddev],
+        "  topology: ",tp[:topology],"  num_attributes: ",tp[:num_attributes])
   if tp[:num_trials] == 1
     return evolve( tp, tr )
   end
